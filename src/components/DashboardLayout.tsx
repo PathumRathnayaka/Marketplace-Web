@@ -68,11 +68,10 @@ export function DashboardLayout({
                   key={item.label}
                   type="button"
                   onClick={() => onNavigate(item.route)}
-                  className={`flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-medium transition ${
-                    active
+                  className={`flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-medium transition ${active
                       ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200'
                       : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
-                  }`}
+                    }`}
                 >
                   <Icon className="h-5 w-5" />
                   {item.label}
@@ -111,11 +110,10 @@ export function DashboardLayout({
                     key={item.label}
                     type="button"
                     onClick={() => onNavigate(item.route)}
-                    className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium ${
-                      active
+                    className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium ${active
                         ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200'
                         : 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300'
-                    }`}
+                      }`}
                   >
                     <Icon className="h-4 w-4" />
                     {item.label}
