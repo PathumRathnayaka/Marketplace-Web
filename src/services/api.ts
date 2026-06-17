@@ -1,7 +1,7 @@
 import { ApiResponse, LoginData, RegisterOwnerPayload } from '../types/auth';
+import { env } from '../config/env';
 import { Customer, Grn, Product, ProductQuantityBatch, Sale, Supplier, Wallet } from '../types/pos';
 
-const API_BASE_URL = 'http://localhost:8080';
 const AUTH_STORAGE_KEY = 'qalpos.auth';
 
 type RequestOptions = RequestInit & {
@@ -47,7 +47,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     headers.set('X-Tenant-Id', auth.user.tenantId);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${env.apiBaseUrl}${path}`, {
     ...options,
     headers,
   });
