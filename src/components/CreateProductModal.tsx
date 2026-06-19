@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { productApi, productVariationApi, inventoryApi, supplierApi } from '../services/api';
-import { Supplier } from '../types/pos';
+import { Supplier, Product } from '../types/pos';
 
 interface CreateProductModalProps {
     isOpen: boolean;
@@ -16,22 +16,21 @@ export function CreateProductModal({ isOpen, onClose, onSuccess }: CreateProduct
         category: '',
         unitType: 'Boxes',
         status: 'ACTIVE',
-        minimumQuantity: '',
+        minimumQuantity: '' as number | string,
         // Variation
         variation: 'Default',
         // Batch
-        variationSize: 'Default',
         supplierId: '',
         barcode: '',
-        quantity: '',
+        quantity: '' as number | string,
         batchCode: '',
-        salePrice: '',
-        purchasePrice: '',
-        ourPrice: '',
+        salePrice: '' as number | string,
+        purchasePrice: '' as number | string,
+        ourPrice: '' as number | string,
         brand: '',
         warehouseNo: '',
-        discount: '',
-        tax: '',
+        discount: '' as number | string,
+        tax: '' as number | string,
         expireDate: '',
     });
 
@@ -39,9 +38,19 @@ export function CreateProductModal({ isOpen, onClose, onSuccess }: CreateProduct
     const [error, setError] = useState<string | null>(null);
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
+    // Caching
+    const [cachedProducts, setCachedProducts] = useState<Product[]>([]);
+    const [cachedVariations, setCachedVariations] = useState<any[]>([]);
+
+    // Dropdown visibility state
+    const [showProductDropdown, setShowProductDropdown] = useState(false);
+    const [showVariationDropdown, setShowVariationDropdown] = useState(false);
+
     useEffect(() => {
         if (isOpen) {
             supplierApi.list().then(setSuppliers).catch(console.error);
+            productApi.list().then(setCachedProducts).catch(console.error);
+            productVariationApi.list().then(setCachedVariations).catch(console.error);
         }
     }, [isOpen]);
 
@@ -55,32 +64,75 @@ export function CreateProductModal({ isOpen, onClose, onSuccess }: CreateProduct
         }));
     };
 
+    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setFormData(prev => ({ ...prev, name: val }));
+        setShowProductDropdown(true);
+    };
+
+    const handleVariationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setFormData(prev => ({ ...prev, variation: val }));
+        setShowVariationDropdown(true);
+    };
+
+    const selectProduct = (p: Product) => {
+        setFormData(prev => ({
+            ...prev,
+            name: p.name || '',
+            category: p.category || p.categoryName || '',
+            unitType: p.unitType || prev.unitType,
+            minimumQuantity: p.minimumQuantity !== undefined ? p.minimumQuantity : prev.minimumQuantity,
+        }));
+        setShowProductDropdown(false);
+    };
+
+    const selectVariation = (v: any) => {
+        setFormData(prev => ({
+            ...prev,
+            variation: v.variation || '',
+        }));
+        setShowVariationDropdown(false);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
         try {
-            // 1. Create Product
-            const productPayload = {
-                name: formData.name,
-                category: formData.category,
-                unitType: formData.unitType,
-                status: formData.status,
-                minimumQuantity: formData.minimumQuantity === '' ? 0 : Number(formData.minimumQuantity),
-            };
-            const productRes: any = await productApi.create(productPayload);
-            const productData = productRes?.data || productRes;
-            const productId = productData.mysqlId || productData.id;
+            // Check if product already exists
+            const matchedProduct = cachedProducts.find(p => p.name === formData.name);
+            let productId = matchedProduct?.mysqlId || matchedProduct?.id;
 
-            // 2. Create Variation
-            const variationPayload = {
-                productId: productId,
-                productName: formData.name,
-                variation: formData.variation,
-            };
-            const variationRes: any = await productVariationApi.create(variationPayload);
-            const variationData = variationRes?.data || variationRes;
-            const variationId = variationData.mysqlId || variationData.id;
+            if (!productId) {
+                // 1. Create Product
+                const productPayload = {
+                    name: formData.name,
+                    category: formData.category,
+                    unitType: formData.unitType,
+                    status: formData.status,
+                    minimumQuantity: formData.minimumQuantity === '' ? 0 : Number(formData.minimumQuantity),
+                };
+                const productRes: any = await productApi.create(productPayload);
+                const productData = productRes?.data || productRes;
+                productId = productData.mysqlId || productData.id;
+            }
+
+            // Check if variation already exists for this exact product ID
+            const matchedVariation = cachedVariations.find(v => v.productId === productId && v.variation === formData.variation);
+            let variationId = matchedVariation?.mysqlId || matchedVariation?.id;
+
+            if (!variationId) {
+                // 2. Create Variation
+                const variationPayload = {
+                    productId: productId,
+                    productName: formData.name,
+                    variation: formData.variation,
+                };
+                const variationRes: any = await productVariationApi.create(variationPayload);
+                const variationData = variationRes?.data || variationRes;
+                variationId = variationData.mysqlId || variationData.id;
+            }
 
             // 3. Create Quantity Batch
             const selectedSupplier = suppliers.find((s) => (s.mysqlId || s.id) === formData.supplierId);
@@ -90,7 +142,7 @@ export function CreateProductModal({ isOpen, onClose, onSuccess }: CreateProduct
                 productId: productId,
                 productName: formData.name,
                 variationId: variationId,
-                variationSize: formData.variationSize,
+                variationSize: null,
                 supplierId: formData.supplierId,
                 supplierName: supplierName,
                 barcode: formData.barcode,
@@ -115,6 +167,20 @@ export function CreateProductModal({ isOpen, onClose, onSuccess }: CreateProduct
         }
     };
 
+    // Filters for dropdowns
+    const filteredProducts = formData.name
+        ? cachedProducts.filter(p => (p.name || '').toLowerCase().includes(formData.name.toLowerCase()))
+        : cachedProducts;
+
+    const matchedProdForVar = cachedProducts.find(p => p.name === formData.name);
+    let activeVariations = matchedProdForVar
+        ? cachedVariations.filter(v => v.productId === matchedProdForVar.mysqlId || v.productId === matchedProdForVar.id)
+        : [];
+
+    const filteredVariations = formData.variation
+        ? activeVariations.filter(v => (v.variation || '').toLowerCase().includes(formData.variation.toLowerCase()))
+        : activeVariations;
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
             <div
@@ -126,10 +192,10 @@ export function CreateProductModal({ isOpen, onClose, onSuccess }: CreateProduct
                 <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
                     <div>
                         <h3 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                            Create New Product
+                            Create New Product & Initial Batch
                         </h3>
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            Fill out product, variation, and initial batch details all at once.
+                            Search for an existing product, or enter a new name to create everything at once.
                         </p>
                     </div>
                     <button
@@ -154,9 +220,33 @@ export function CreateProductModal({ isOpen, onClose, onSuccess }: CreateProduct
                                 1. Product Information
                             </h4>
                             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                                <div className="space-y-1.5">
+                                <div className="space-y-1.5 relative">
                                     <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Name</label>
-                                    <input required name="name" value={formData.name} onChange={handleChange} type="text" className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" placeholder="e.g. Anchor Milk Powder 400g" />
+                                    <input
+                                        required
+                                        name="name"
+                                        autoComplete="off"
+                                        value={formData.name}
+                                        onChange={handleNameChange}
+                                        onFocus={() => setShowProductDropdown(true)}
+                                        onBlur={() => setTimeout(() => setShowProductDropdown(false), 200)}
+                                        type="text"
+                                        className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                                        placeholder="Search or create e.g. Anchor 400g"
+                                    />
+                                    {showProductDropdown && filteredProducts.length > 0 && (
+                                        <ul className="absolute z-10 w-full mt-1 max-h-60 overflow-auto rounded-lg border border-slate-300 bg-white py-1 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                                            {filteredProducts.map(p => (
+                                                <li
+                                                    key={p.id || p.mysqlId}
+                                                    className="cursor-pointer px-3 py-2 hover:bg-emerald-50 hover:text-emerald-700 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-emerald-400"
+                                                    onClick={() => selectProduct(p)}
+                                                >
+                                                    {p.name}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Category</label>
@@ -183,13 +273,33 @@ export function CreateProductModal({ isOpen, onClose, onSuccess }: CreateProduct
                                 2. Variation Details
                             </h4>
                             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                                <div className="space-y-1.5">
+                                <div className="space-y-1.5 relative">
                                     <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Variation</label>
-                                    <input required name="variation" value={formData.variation} onChange={handleChange} type="text" className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" placeholder="e.g. Default" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Variation Size</label>
-                                    <input required name="variationSize" value={formData.variationSize} onChange={handleChange} type="text" className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" placeholder="e.g. Default" />
+                                    <input
+                                        required
+                                        name="variation"
+                                        autoComplete="off"
+                                        value={formData.variation}
+                                        onChange={handleVariationChange}
+                                        onFocus={() => setShowVariationDropdown(true)}
+                                        onBlur={() => setTimeout(() => setShowVariationDropdown(false), 200)}
+                                        type="text"
+                                        className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                                        placeholder="e.g. Default"
+                                    />
+                                    {showVariationDropdown && filteredVariations.length > 0 && (
+                                        <ul className="absolute z-10 w-full mt-1 max-h-60 overflow-auto rounded-lg border border-slate-300 bg-white py-1 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                                            {filteredVariations.map(v => (
+                                                <li
+                                                    key={v.id || v.mysqlId}
+                                                    className="cursor-pointer px-3 py-2 hover:bg-emerald-50 hover:text-emerald-700 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-emerald-400"
+                                                    onClick={() => selectVariation(v)}
+                                                >
+                                                    {v.variation}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Barcode</label>
@@ -201,7 +311,7 @@ export function CreateProductModal({ isOpen, onClose, onSuccess }: CreateProduct
                         {/* Batch & Inventory Section */}
                         <section>
                             <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                                3. Initial Batch & Inventory
+                                3. Quantity Batch & Inventory
                             </h4>
                             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                 <div className="space-y-1.5 lg:col-span-2">

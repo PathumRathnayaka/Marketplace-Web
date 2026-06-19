@@ -108,6 +108,8 @@ export const productApi = {
 };
 
 export const productVariationApi = {
+  list: () => requestList<any>('/api/pos/api/v1/product-variations'),
+  get: (id: string) => requestOne<any>(`/api/pos/api/v1/product-variations/${id}`),
   create: (data: any) =>
     request<ApiResponse<any>>('/api/pos/api/v1/product-variations', {
       method: 'POST',
