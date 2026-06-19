@@ -4,13 +4,15 @@ import { DataTable } from '../components/DataTable';
 import { MetricCard } from '../components/MetricCard';
 import { PageHeader } from '../components/PageHeader';
 import { useAsyncData } from '../hooks/useAsyncData';
-import { inventoryApi } from '../services/api';
+import { inventoryApi, productVariationApi } from '../services/api';
 import { ProductQuantityBatch } from '../types/pos';
 import { formatDate, formatMoney } from '../utils/format';
 
 export function InventoryPage() {
   const loadBatches = useCallback(() => inventoryApi.listBatches(), []);
   const { data: batches, loading, error } = useAsyncData<ProductQuantityBatch[]>(loadBatches, []);
+  const loadVariations = useCallback(() => productVariationApi.list(), []);
+  const { data: variations } = useAsyncData<any[]>(loadVariations, []);
   const quantity = batches.reduce((sum, batch) => sum + (batch.quantity || 0), 0);
   const stockValue = batches.reduce(
     (sum, batch) => sum + (batch.quantity || 0) * (batch.purchasePrice || 0),
@@ -36,8 +38,14 @@ export function InventoryPage() {
         emptyMessage="No inventory batches found"
         getRowKey={(batch, index) => batch.id || batch.batchCode || index.toString()}
         columns={[
-          { key: 'batch', header: 'Batch', render: (batch) => batch.batchCode || batch.mysqlId || '-' },
+          { key: 'count', header: '#', render: (_batch, index) => index + 1 },
           { key: 'product', header: 'Product', render: (batch) => batch.productName || batch.productId || '-' },
+          {
+            key: 'variation', header: 'Variation', render: (batch) => {
+              const v = variations.find((v: any) => v.mysqlId === batch.variationId || v.id === batch.variationId);
+              return v?.variation || batch.variationId || '-';
+            }
+          },
           { key: 'quantity', header: 'Qty', render: (batch) => batch.quantity ?? '-' },
           { key: 'purchase', header: 'Purchase', render: (batch) => formatMoney(batch.purchasePrice) },
           { key: 'sale', header: 'Sale', render: (batch) => formatMoney(batch.salePrice) },

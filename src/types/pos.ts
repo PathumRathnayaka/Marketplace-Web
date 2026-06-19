@@ -87,6 +87,7 @@ export interface ProductQuantityBatch {
   mysqlId?: string;
   productId?: string;
   productName?: string;
+  variationId?: string;
   batchCode?: string;
   quantity?: number;
   salePrice?: number;
