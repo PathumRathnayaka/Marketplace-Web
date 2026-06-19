@@ -125,6 +125,16 @@ export const salesApi = {
 export const grnApi = {
   list: () => requestList<Grn>('/api/pos/api/v1/grns'),
   get: (id: string) => requestOne<Grn>(`/api/pos/api/v1/grns/${id}`),
+  create: (data: Partial<Grn>) =>
+    request<ApiResponse<Grn>>('/api/pos/api/v1/grns', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  createPayment: (data: any) =>
+    request<ApiResponse<any>>('/api/pos/api/v1/grn-payments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 export const walletApi = {

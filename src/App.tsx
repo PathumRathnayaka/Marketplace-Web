@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { SalesPage } from './pages/SalesPage';
 import { GrnsPage } from './pages/GrnsPage';
+import { CreateGrnPage } from './pages/CreateGrnPage';
 import { WalletsPage } from './pages/WalletsPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { CustomersPage } from './pages/CustomersPage';
@@ -73,6 +74,8 @@ function renderProtectedPage(route: Route, auth: LoginData) {
       return <SalesPage />;
     case '/grns':
       return <GrnsPage />;
+    case '/grns/create':
+      return <CreateGrnPage />;
     case '/wallets':
       return <WalletsPage />;
     case '/inventory':

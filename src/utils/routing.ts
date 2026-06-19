@@ -5,6 +5,7 @@ export type Route =
   | '/products'
   | '/sales'
   | '/grns'
+  | '/grns/create'
   | '/wallets'
   | '/inventory'
   | '/customers'
@@ -24,12 +25,13 @@ export function readRoute(): Route {
     path === '/products' ||
     path === '/sales' ||
     path === '/grns' ||
+    path === '/grns/create' ||
     path === '/wallets' ||
     path === '/inventory' ||
     path === '/customers' ||
     path === '/suppliers'
   ) {
-    return path;
+    return path as Route;
   }
 
   return '/login';

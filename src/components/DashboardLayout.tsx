@@ -28,7 +28,14 @@ const navItems = [
   { label: 'Dashboard', route: '/dashboard' as const, icon: BarChart3 },
   { label: 'Products', route: '/products' as const, icon: Package },
   { label: 'Sales', route: '/sales' as const, icon: ShoppingBag },
-  { label: 'GRN', route: '/grns' as const, icon: Truck },
+  {
+    label: 'GRN',
+    icon: Truck,
+    subItems: [
+      { label: 'GRNs List', route: '/grns' as const },
+      { label: 'Create GRN', route: '/grns/create' as const },
+    ]
+  },
   { label: 'Wallets', route: '/wallets' as const, icon: CreditCard },
   { label: 'Inventory', route: '/inventory' as const, icon: Boxes },
   { label: 'Customers', route: '/customers' as const, icon: Users },
@@ -61,16 +68,47 @@ export function DashboardLayout({
           <nav className="mt-8 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
+
+              if (item.subItems) {
+                const isActiveGroup = item.subItems.some(sub => sub.route === route);
+                return (
+                  <div key={item.label} className="space-y-1">
+                    <div className={`flex h-11 w-full items-center gap-3 px-3 text-left text-sm font-medium ${isActiveGroup ? 'text-emerald-700 dark:text-emerald-200' : 'text-slate-600 dark:text-slate-300'}`}>
+                      <Icon className="h-5 w-5" />
+                      {item.label}
+                    </div>
+                    <div className="ml-9 space-y-1">
+                      {item.subItems.map(subItem => {
+                        const active = subItem.route === route;
+                        return (
+                          <button
+                            key={subItem.label}
+                            type="button"
+                            onClick={() => onNavigate(subItem.route)}
+                            className={`flex h-10 w-full items-center rounded-lg px-3 text-left text-sm transition ${active
+                              ? 'bg-emerald-50 text-emerald-700 font-semibold dark:bg-emerald-950 dark:text-emerald-200'
+                              : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800'
+                              }`}
+                          >
+                            {subItem.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
+
               const active = item.route === route;
 
               return (
                 <button
                   key={item.label}
                   type="button"
-                  onClick={() => onNavigate(item.route)}
+                  onClick={() => onNavigate(item.route!)}
                   className={`flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-medium transition ${active
-                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200'
-                      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200'
+                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
                     }`}
                 >
                   <Icon className="h-5 w-5" />
@@ -103,16 +141,37 @@ export function DashboardLayout({
             <nav className="mt-4 flex gap-2 overflow-x-auto lg:hidden">
               {navItems.map((item) => {
                 const Icon = item.icon;
+
+                if (item.subItems) {
+                  return item.subItems.map(subItem => {
+                    const active = subItem.route === route;
+                    return (
+                      <button
+                        key={subItem.label}
+                        type="button"
+                        onClick={() => onNavigate(subItem.route)}
+                        className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium ${active
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200'
+                          : 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300'
+                          }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {subItem.label}
+                      </button>
+                    )
+                  })
+                }
+
                 const active = item.route === route;
 
                 return (
                   <button
                     key={item.label}
                     type="button"
-                    onClick={() => onNavigate(item.route)}
+                    onClick={() => onNavigate(item.route!)}
                     className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium ${active
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200'
-                        : 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300'
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200'
+                      : 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300'
                       }`}
                   >
                     <Icon className="h-4 w-4" />

@@ -46,13 +46,18 @@ export interface GrnItem {
   mysqlId?: string;
   productId?: string;
   productName?: string;
+  variationId?: string;
   quantity?: number;
   purchasePrice?: number;
   salePrice?: number;
+  ourPrice?: number;
   expireDate?: string;
   barcode?: string;
+  brand?: string;
   batchCode?: string;
   warehouseNo?: string;
+  tax?: number;
+  discount?: number;
 }
 
 export interface Grn {

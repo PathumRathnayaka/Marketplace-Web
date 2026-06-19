@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { CircleDollarSign, Truck } from 'lucide-react';
+import { CircleDollarSign, Truck, Plus } from 'lucide-react';
 import { DataTable } from '../components/DataTable';
 import { MetricCard } from '../components/MetricCard';
 import { PageHeader } from '../components/PageHeader';
@@ -8,6 +8,7 @@ import { useAsyncData } from '../hooks/useAsyncData';
 import { grnApi } from '../services/api';
 import { Grn } from '../types/pos';
 import { formatDate, formatDateTime, formatMoney } from '../utils/format';
+import { navigate } from '../utils/routing';
 
 export function GrnsPage() {
   const loadGrns = useCallback(() => grnApi.list(), []);
@@ -17,10 +18,21 @@ export function GrnsPage() {
 
   return (
     <div className="px-5 py-6 sm:px-7">
-      <PageHeader
-        title="Goods receipt notes"
-        description="Read supplier receipts, payment status, invoice numbers, totals, and received stock item counts."
-      />
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="[&>div]:mb-6">
+          <PageHeader
+            title="Goods receipt notes"
+            description="Read supplier receipts, payment status, invoice numbers, totals, and received stock item counts."
+          />
+        </div>
+        <button
+          onClick={() => navigate('/grns/create')}
+          className="flex shrink-0 items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 hover:shadow transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+        >
+          <Plus className="h-4 w-4" />
+          Create GRN
+        </button>
+      </div>
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <MetricCard label="GRNs" value={grns.length.toString()} icon={Truck} />
         <MetricCard label="Total received" value={formatMoney(total)} icon={CircleDollarSign} />
