@@ -100,6 +100,19 @@ export const authApi = {
 export const productApi = {
   list: () => requestList<Product>('/api/pos/api/v1/products'),
   get: (id: string) => requestOne<Product>(`/api/pos/api/v1/products/${id}`),
+  create: (data: Partial<Product>) =>
+    request<ApiResponse<Product>>('/api/pos/api/v1/products', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+export const productVariationApi = {
+  create: (data: any) =>
+    request<ApiResponse<any>>('/api/pos/api/v1/product-variations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 export const salesApi = {
@@ -119,6 +132,11 @@ export const walletApi = {
 
 export const inventoryApi = {
   listBatches: () => requestList<ProductQuantityBatch>('/api/pos/api/v1/product-quantity-batches'),
+  createBatch: (data: any) =>
+    request<ApiResponse<any>>('/api/pos/api/v1/product-quantity-batches', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 export const customerApi = {
