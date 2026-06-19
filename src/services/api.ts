@@ -129,6 +129,11 @@ export const customerApi = {
 export const supplierApi = {
   list: () => requestList<Supplier>('/api/pos/api/v1/suppliers'),
   get: (id: string) => requestOne<Supplier>(`/api/pos/api/v1/suppliers/${id}`),
+  create: (data: Partial<Supplier>) =>
+    request<ApiResponse<Supplier>>('/api/pos/api/v1/suppliers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 async function requestList<T>(path: string) {

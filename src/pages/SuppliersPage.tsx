@@ -1,6 +1,7 @@
-import { useCallback } from 'react';
-import { Link, Store, UserRoundCheck, Users } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { Link, Plus, Store, UserRoundCheck, Users } from 'lucide-react';
 import { DataTable } from '../components/DataTable';
+import { CreateSupplierModal } from '../components/CreateSupplierModal';
 import { MetricCard } from '../components/MetricCard';
 import { PageHeader } from '../components/PageHeader';
 import { StatusBadge } from '../components/StatusBadge';
@@ -10,7 +11,10 @@ import { Supplier } from '../types/pos';
 import { formatDateTime } from '../utils/format';
 
 export function SuppliersPage() {
-  const loadSuppliers = useCallback(() => supplierApi.list(), []);
+  const [refreshCounter, setRefreshCounter] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const loadSuppliers = useCallback(() => supplierApi.list(), [refreshCounter]);
   const { data: suppliers, loading, error } = useAsyncData<Supplier[]>(loadSuppliers, []);
   const marketplaceConnected = suppliers.filter((supplier) => supplier.marketplaceConnected).length;
   const localSuppliers = suppliers.filter(
@@ -19,10 +23,21 @@ export function SuppliersPage() {
 
   return (
     <div className="px-5 py-6 sm:px-7">
-      <PageHeader
-        title="Suppliers"
-        description="Read supplier profiles, contacts, representatives, source, and marketplace connection state for this tenant."
-      />
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="[&>div]:mb-6">
+          <PageHeader
+            title="Suppliers"
+            description="Read supplier profiles, contacts, representatives, source, and marketplace connection state for this tenant."
+          />
+        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 transition-colors"
+        >
+          <Plus className="h-5 w-5" aria-hidden="true" />
+          Create supplier
+        </button>
+      </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <MetricCard label="Suppliers" value={suppliers.length.toString()} icon={Users} />
@@ -94,6 +109,15 @@ export function SuppliersPage() {
           </div>
         </div>
       </section>
+
+      <CreateSupplierModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={() => {
+          setIsModalOpen(false);
+          setRefreshCounter((prev) => prev + 1);
+        }}
+      />
     </div>
   );
 }
