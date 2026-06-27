@@ -94,10 +94,12 @@ export interface ProductQuantityBatch {
   productId?: string;
   productName?: string;
   variationId?: string;
+  barcode?: string;
   batchCode?: string;
   quantity?: number;
   salePrice?: number;
   purchasePrice?: number;
+  ourPrice?: number;
   expireDate?: string;
   warehouseNo?: string;
 }

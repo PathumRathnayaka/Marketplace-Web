@@ -4,6 +4,7 @@ import {
   CreditCard,
   LogOut,
   Package,
+  ScanBarcode,
   ShoppingBag,
   Store,
   Truck,
@@ -26,6 +27,7 @@ interface DashboardLayoutProps {
 
 const navItems = [
   { label: 'Dashboard', route: '/dashboard' as const, icon: BarChart3 },
+  { label: 'POS', route: '/pos' as const, icon: ScanBarcode },
   { label: 'Products', route: '/products' as const, icon: Package },
   { label: 'Sales', route: '/sales' as const, icon: ShoppingBag },
   {

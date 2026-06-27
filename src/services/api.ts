@@ -120,6 +120,11 @@ export const productVariationApi = {
 export const salesApi = {
   list: () => requestList<Sale>('/api/pos/api/v1/sales'),
   get: (id: string) => requestOne<Sale>(`/api/pos/api/v1/sales/${id}`),
+  create: (data: Partial<Sale>) =>
+    request<ApiResponse<Sale>>('/api/pos/api/v1/sales', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 export const grnApi = {
@@ -140,6 +145,16 @@ export const grnApi = {
 export const walletApi = {
   list: () => requestList<Wallet>('/api/pos/api/v1/wallets'),
   get: (id: string) => requestOne<Wallet>(`/api/pos/api/v1/wallets/${id}`),
+  create: (data: Partial<Wallet>) =>
+    request<ApiResponse<Wallet>>('/api/pos/api/v1/wallets', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<Wallet>) =>
+    request<ApiResponse<Wallet>>(`/api/pos/api/v1/wallets/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 };
 
 export const inventoryApi = {
@@ -154,6 +169,11 @@ export const inventoryApi = {
 export const customerApi = {
   list: () => requestList<Customer>('/api/pos/api/v1/customers'),
   get: (id: string) => requestOne<Customer>(`/api/pos/api/v1/customers/${id}`),
+  create: (data: Partial<Customer>) =>
+    request<ApiResponse<Customer>>('/api/pos/api/v1/customers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 export const supplierApi = {

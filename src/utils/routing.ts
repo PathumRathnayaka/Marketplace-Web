@@ -2,6 +2,7 @@ export type Route =
   | '/login'
   | '/signup'
   | '/dashboard'
+  | '/pos'
   | '/products'
   | '/sales'
   | '/grns'
@@ -40,6 +41,7 @@ export function readRoute(): Route {
   if (
     path === '/signup' ||
     path === '/dashboard' ||
+    path === '/pos' ||
     path === '/products' ||
     path === '/sales' ||
     path === '/grns' ||

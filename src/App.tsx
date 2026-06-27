@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { POSPage } from './pages/POSPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { SalesPage } from './pages/SalesPage';
 import { GrnsPage } from './pages/GrnsPage';
@@ -69,6 +70,8 @@ function App() {
 
 function renderProtectedPage(route: Route, auth: LoginData) {
   switch (route) {
+    case '/pos':
+      return <POSPage />;
     case '/products':
       return <ProductsPage />;
     case '/sales':
