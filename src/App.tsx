@@ -46,6 +46,14 @@ function App() {
     return <SignupPage theme={theme} onToggleTheme={toggleTheme} />;
   }
 
+  if (auth && route === '/pos') {
+    return (
+      <main className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
+        <POSPage />
+      </main>
+    );
+  }
+
   if (auth && route !== '/login') {
     return (
       <DashboardLayout
@@ -70,8 +78,6 @@ function App() {
 
 function renderProtectedPage(route: Route, auth: LoginData) {
   switch (route) {
-    case '/pos':
-      return <POSPage />;
     case '/products':
       return <ProductsPage />;
     case '/sales':

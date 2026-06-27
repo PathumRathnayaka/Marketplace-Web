@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
     Search, Trash2, UserRound, Wallet as WalletIcon, CreditCard, Banknote,
-    ScrollText, Loader2, Plus, Minus, X, CheckCircle2,
+    ScrollText, Loader2, Plus, Minus, X, CheckCircle2, Settings,
+    Boxes, UserRoundPlus, Lock, Pause, Cloud, CircleDollarSign, Tag,
+    RotateCcw, BarChart3, Printer, MessageSquare, Package,
 } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { PosCustomerModal } from '../components/PosCustomerModal';
 import { getStoredAuth, inventoryApi, productApi, salesApi, walletApi } from '../services/api';
 import { Customer, Product, ProductQuantityBatch } from '../types/pos';
 import { formatMoney } from '../utils/format';
+import { navigate } from '../utils/routing';
 
 interface Sellable {
     productId: string;
@@ -207,29 +210,29 @@ export function POSPage() {
     };
 
     return (
-        <div className="px-5 py-6 sm:px-7">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <PageHeader title="POS System" description="Search products, build the cart, and check out a sale." />
-                {customer && (
-                    <span className="inline-flex items-center gap-2 self-start rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">
-                        <UserRound className="h-4 w-4" /> {customer.contact}
-                        <button onClick={() => setCustomer(null)} className="text-emerald-500 hover:text-emerald-700">
-                            <X className="h-3.5 w-3.5" />
-                        </button>
-                    </span>
-                )}
-            </div>
-
-            {error && <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-900/30 dark:text-red-400">{error}</div>}
-            {success && (
-                <div className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">
-                    <CheckCircle2 className="h-4 w-4" /> {success}
+        <div className="flex h-screen flex-col gap-5 px-5 py-6 sm:px-7 lg:flex-row">
+            {/* Main area */}
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <PageHeader title="POS System"  />
+                    {customer && (
+                        <span className="inline-flex items-center gap-2 self-start rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">
+                            <UserRound className="h-4 w-4" /> {customer.contact}
+                            <button onClick={() => setCustomer(null)} className="text-emerald-500 hover:text-emerald-700">
+                                <X className="h-3.5 w-3.5" />
+                            </button>
+                        </span>
+                    )}
                 </div>
-            )}
 
-            <div className="mt-4 grid gap-5 lg:grid-cols-[1fr_320px]">
-                {/* Main area */}
-                <div className="min-w-0">
+                {error && <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-900/30 dark:text-red-400">{error}</div>}
+                {success && (
+                    <div className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">
+                        <CheckCircle2 className="h-4 w-4" /> {success}
+                    </div>
+                )}
+
+                <div className="mt-4 min-h-0 flex-1">
                     {mode === 'cart' ? (
                         <CartView
                             search={search} setSearch={setSearch}
@@ -250,28 +253,48 @@ export function POSPage() {
                         />
                     )}
                 </div>
+            </div>
 
-                {/* Action panel */}
-                <aside className="space-y-3">
-                    <ActionButton icon={UserRound} label="Customer" onClick={() => setIsCustomerModalOpen(true)} />
-                    <ActionButton icon={Trash2} label="Clear cart" onClick={resetSale} disabled={cart.length === 0} />
+            {/* Action panel — touch-friendly button grid */}
+            <aside className="w-full shrink-0 space-y-3 overflow-y-auto lg:w-[340px]">
+                    <div className="grid grid-cols-2 gap-3">
+                        <PosButton icon={Trash2} label="Delete" />
+                        <PosButton icon={Boxes} label="Quantity" />
+                        <PosButton icon={UserRoundPlus} label="Customer" onClick={() => setIsCustomerModalOpen(true)} />
+                        <PosButton icon={Lock} label="Lock" />
+                        <PosButton icon={Pause} label="Pause" variant="pause" />
+                        <PosButton icon={Cloud} label="Sync Data" />
+                    </div>
+
                     <button
+                        type="button"
+                        className="flex w-full items-center justify-center gap-3 rounded-xl bg-slate-800 px-4 py-5 text-base font-bold text-white transition hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600"
+                    >
+                        <CircleDollarSign className="h-6 w-6" /> Quick Sale
+                    </button>
+
+                    <button
+                        type="button"
                         onClick={goToPayment}
                         disabled={cart.length === 0 || mode === 'payment'}
-                        className="flex w-full items-center justify-center gap-3 rounded-xl bg-emerald-600 px-4 py-5 text-lg font-bold text-white shadow-sm transition hover:bg-emerald-500 disabled:opacity-50"
+                        className="flex w-full items-center justify-center gap-3 rounded-xl bg-emerald-600 px-4 py-6 text-xl font-bold text-white shadow-sm transition hover:bg-emerald-500 disabled:opacity-50"
                     >
-                        <CreditCard className="h-6 w-6" /> PAYMENT
+                        <CreditCard className="h-7 w-7" /> PAYMENT
                     </button>
-                    <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
-                        <div className="flex justify-between text-slate-500 dark:text-slate-400">
-                            <span>Items</span><span>{cart.reduce((n, l) => n + l.quantity, 0)}</span>
-                        </div>
-                        <div className="mt-2 flex justify-between text-base font-bold">
-                            <span>Total</span><span className="text-emerald-600">{formatMoney(total)}</span>
-                        </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                        <PosButton icon={Tag} label="Discount" />
+                        <PosButton icon={RotateCcw} label="Refund" />
+                        <PosButton icon={BarChart3} label="Stats" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <PosButton icon={Printer} label="Cash Drawer" />
+                        <PosButton icon={MessageSquare} label="Comment" />
+                        <PosButton icon={Package} label="Product" />
+                        <PosButton icon={Settings} label="Setting" onClick={() => navigate('/dashboard')} />
                     </div>
                 </aside>
-            </div>
 
             <PosCustomerModal
                 isOpen={isCustomerModalOpen}
@@ -282,13 +305,28 @@ export function POSPage() {
     );
 }
 
-function ActionButton({ icon: Icon, label, onClick, disabled }: { icon: any; label: string; onClick: () => void; disabled?: boolean }) {
+interface PosButtonProps {
+    icon: any;
+    label: string;
+    onClick?: () => void;
+    disabled?: boolean;
+    variant?: 'default' | 'pause';
+}
+
+function PosButton({ icon: Icon, label, onClick, disabled, variant = 'default' }: PosButtonProps) {
+    const variants: Record<string, string> = {
+        default:
+            'border border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700',
+        pause:
+            'border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-700/60 dark:bg-amber-900/30 dark:text-amber-300',
+    };
+
     return (
         <button
-            onClick={onClick} disabled={disabled}
-            className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-emerald-700"
+            type="button" onClick={onClick} disabled={disabled}
+            className={`flex min-h-[80px] flex-col items-center justify-center gap-2 rounded-xl px-2 py-4 text-xs font-semibold uppercase tracking-wide shadow-sm transition disabled:opacity-50 ${variants[variant]}`}
         >
-            <Icon className="h-5 w-5" /> {label}
+            <Icon className="h-6 w-6" /> {label}
         </button>
     );
 }
@@ -303,7 +341,7 @@ interface CartViewProps {
 
 function CartView(p: CartViewProps) {
     return (
-        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
             <div className="relative border-b border-slate-200 p-4 dark:border-slate-800">
                 <Search className="pointer-events-none absolute left-7 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
@@ -334,7 +372,7 @@ function CartView(p: CartViewProps) {
                 )}
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="min-h-0 flex-1 overflow-auto">
                 <table className="min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-800">
                     <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950 dark:text-slate-400">
                         <tr>
