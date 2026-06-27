@@ -108,7 +108,6 @@ export function CreateGrnPage() {
                             <tr>
                                 <th className="px-6 py-3 font-medium">Product</th>
                                 <th className="px-6 py-3 font-medium">Variation</th>
-                                <th className="px-6 py-3 font-medium">Batch</th>
                                 <th className="px-6 py-3 font-medium">Qty</th>
                                 <th className="px-6 py-3 font-medium shrink-0">Total</th>
                                 <th className="px-6 py-3 font-medium text-right relative"><span className="sr-only">Actions</span></th>
@@ -117,14 +116,13 @@ export function CreateGrnPage() {
                         <tbody className="divide-y divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-900">
                             {items.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500">No items added to this GRN yet.</td>
+                                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500">No items added to this GRN yet.</td>
                                 </tr>
                             ) : (
                                 items.map((item, index) => (
                                     <tr key={index} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td className="px-6 py-4 font-medium">{item.productName}</td>
-                                        <td className="px-6 py-4 text-slate-500">{item.variationId ? "Linked" : "-"}</td>
-                                        <td className="px-6 py-4">{item.batchCode || '-'}</td>
+                                        <td className="px-6 py-4 text-slate-500">{item.variation || '-'}</td>
                                         <td className="px-6 py-4">{item.quantity}</td>
                                         <td className="px-6 py-4 font-mono text-emerald-600">
                                             {((item.quantity || 0) * (item.purchasePrice || 0)).toFixed(2)}

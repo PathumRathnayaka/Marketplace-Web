@@ -12,7 +12,7 @@ interface CreateGrnItemModalProps {
 export function CreateGrnItemModal({ isOpen, onClose, onAdd }: CreateGrnItemModalProps) {
     const [itemData, setItemData] = useState({
         productName: '',
-        variation: 'Default',
+        variation: '',
         quantity: '' as number | string,
         purchasePrice: '' as number | string,
         salePrice: '' as number | string,
@@ -38,7 +38,7 @@ export function CreateGrnItemModal({ isOpen, onClose, onAdd }: CreateGrnItemModa
             // Reset form
             setItemData({
                 productName: '',
-                variation: 'Default',
+                variation: '',
                 quantity: '',
                 purchasePrice: '',
                 salePrice: '',

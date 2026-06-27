@@ -61,6 +61,20 @@ export function CreateGrnPaymentModal({
         }));
     };
 
+    const handlePaymentStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const value = e.target.value;
+        const total = Number(formData.totalAmount) || 0;
+        setFormData(prev => {
+            if (value === 'PAID') {
+                return { ...prev, paymentStatus: value, paidAmount: total, dueAmount: 0, paymentAmount: total };
+            }
+            if (value === 'UNPAID') {
+                return { ...prev, paymentStatus: value, paidAmount: 0, dueAmount: total, paymentAmount: 0 };
+            }
+            return { ...prev, paymentStatus: value };
+        });
+    };
+
     const handleCalcDue = () => {
         const total = Number(formData.totalAmount) || 0;
         const paid = Number(formData.paidAmount) || 0;
@@ -230,7 +244,7 @@ export function CreateGrnPaymentModal({
                                 </div>
                                 <div className="space-y-1.5 shrink">
                                     <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Payment Status</label>
-                                    <select required name="paymentStatus" value={formData.paymentStatus} onChange={handleChange} className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                    <select required name="paymentStatus" value={formData.paymentStatus} onChange={handlePaymentStatusChange} className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white">
                                         <option value="PARTIAL">PARTIAL</option>
                                         <option value="PAID">PAID</option>
                                         <option value="UNPAID">UNPAID</option>
