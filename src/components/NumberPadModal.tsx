@@ -5,13 +5,14 @@ interface NumberPadModalProps {
     isOpen: boolean;
     title?: string;
     initialValue?: number;
+    allowDecimal?: boolean;
     onClose: () => void;
     onSubmit: (value: number) => void;
 }
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0'];
 
-export function NumberPadModal({ isOpen, title = 'Enter Quantity', initialValue, onClose, onSubmit }: NumberPadModalProps) {
+export function NumberPadModal({ isOpen, title = 'Enter Quantity', initialValue, allowDecimal = true, onClose, onSubmit }: NumberPadModalProps) {
     const [entry, setEntry] = useState('');
 
     useEffect(() => {
@@ -21,6 +22,7 @@ export function NumberPadModal({ isOpen, title = 'Enter Quantity', initialValue,
     if (!isOpen) return null;
 
     const press = (ch: string) => {
+        if (ch === '.' && !allowDecimal) return;
         setEntry((prev) => {
             if (ch === '.') {
                 if (prev.includes('.')) return prev;
@@ -62,8 +64,8 @@ export function NumberPadModal({ isOpen, title = 'Enter Quantity', initialValue,
 
                     <div className="grid grid-cols-3 gap-2">
                         {KEYS.map((k) => (
-                            <button key={k} type="button" onClick={() => press(k)}
-                                className="h-16 rounded-lg border border-slate-200 bg-white text-2xl font-semibold text-slate-800 transition hover:bg-slate-100 active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700">
+                            <button key={k} type="button" onClick={() => press(k)} disabled={k === '.' && !allowDecimal}
+                                className="h-16 rounded-lg border border-slate-200 bg-white text-2xl font-semibold text-slate-800 transition hover:bg-slate-100 active:scale-95 disabled:opacity-30 disabled:hover:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 dark:disabled:hover:bg-slate-800">
                                 {k}
                             </button>
                         ))}

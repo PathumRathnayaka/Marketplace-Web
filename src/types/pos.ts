@@ -46,6 +46,8 @@ export interface GrnItem {
   mysqlId?: string;
   productId?: string;
   productName?: string;
+  unitType?: string;
+  category?: string;
   variation?: string;
   variationId?: string;
   quantity?: number;

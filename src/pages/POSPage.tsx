@@ -17,6 +17,7 @@ interface Sellable {
     productId: string;
     productName: string;
     category: string;
+    unitType: string;
     barcode?: string;
     salePrice: number;
     ourPrice: number;
@@ -27,10 +28,16 @@ interface CartLine {
     productId: string;
     productName: string;
     category: string;
+    unitType: string;
     salePrice: number;
     ourPrice: number;
     quantity: number;
 }
+
+// Discrete units can only be sold in whole numbers; everything else (KG, L, W,
+// Liters, Meters, …) supports fractional quantities like 2.564.
+const WHOLE_NUMBER_UNITS = ['Packes', 'Bottles', 'Bags', 'Drums'];
+const allowsDecimal = (unitType?: string) => !WHOLE_NUMBER_UNITS.includes(unitType || '');
 
 const PAYMENT_METHODS = [
     { value: 'CASH', label: 'Cash', icon: Banknote },
@@ -105,6 +112,7 @@ export function POSPage() {
     const netPayable = Math.max(0, total - walletApplied);
     const paidValue = Number(paid) || 0;
     const change = Math.max(0, paidValue - netPayable);
+    const selectedLine = cart.find((l) => l.productId === selectedProductId);
 
     const filtered = search.trim()
         ? sellables.filter((s) => {
@@ -121,7 +129,7 @@ export function POSPage() {
             }
             return [...prev, {
                 productId: item.productId, productName: item.productName, category: item.category,
-                salePrice: item.salePrice, ourPrice: item.ourPrice, quantity: 1,
+                unitType: item.unitType, salePrice: item.salePrice, ourPrice: item.ourPrice, quantity: 1,
             }];
         });
         setSearch('');
@@ -365,8 +373,9 @@ export function POSPage() {
 
             <NumberPadModal
                 isOpen={isQtyPadOpen}
-                title="Enter Quantity"
-                initialValue={cart.find((l) => l.productId === selectedProductId)?.quantity}
+                title={`Enter Quantity${selectedLine?.unitType ? ` (${selectedLine.unitType})` : ''}`}
+                initialValue={selectedLine?.quantity}
+                allowDecimal={allowsDecimal(selectedLine?.unitType)}
                 onClose={() => setIsQtyPadOpen(false)}
                 onSubmit={setLineQuantity}
             />
@@ -611,10 +620,11 @@ function PaymentView(p: PaymentViewProps) {
 
 function buildSellables(batches: ProductQuantityBatch[], products: Product[]): Sellable[] {
     const categoryById = new Map<string, string>();
+    const unitTypeById = new Map<string, string>();
     products.forEach((prod) => {
         const cat = prod.category || prod.categoryName || '';
-        if (prod.id) categoryById.set(String(prod.id), cat);
-        if (prod.mysqlId) categoryById.set(String(prod.mysqlId), cat);
+        if (prod.id) { categoryById.set(String(prod.id), cat); unitTypeById.set(String(prod.id), prod.unitType || ''); }
+        if (prod.mysqlId) { categoryById.set(String(prod.mysqlId), cat); unitTypeById.set(String(prod.mysqlId), prod.unitType || ''); }
     });
 
     const byProduct = new Map<string, Sellable>();
@@ -636,6 +646,7 @@ function buildSellables(batches: ProductQuantityBatch[], products: Product[]): S
             productId: key,
             productName: b.productName || 'Unnamed product',
             category: categoryById.get(key) || '',
+            unitType: unitTypeById.get(key) || '',
             barcode: b.barcode,
             salePrice: Number(b.salePrice) || 0,
             ourPrice: Number(b.ourPrice) || 0,

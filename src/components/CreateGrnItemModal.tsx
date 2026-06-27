@@ -9,9 +9,13 @@ interface CreateGrnItemModalProps {
     onAdd: (item: Partial<GrnItem>) => void;
 }
 
+const UNIT_TYPES = ['Packes', 'Bottles', 'Bags', 'Drums', 'KG', 'L', 'W'];
+
 export function CreateGrnItemModal({ isOpen, onClose, onAdd }: CreateGrnItemModalProps) {
     const [itemData, setItemData] = useState({
         productName: '',
+        unitType: '',
+        category: '',
         variation: '',
         quantity: '' as number | string,
         purchasePrice: '' as number | string,
@@ -38,6 +42,8 @@ export function CreateGrnItemModal({ isOpen, onClose, onAdd }: CreateGrnItemModa
             // Reset form
             setItemData({
                 productName: '',
+                unitType: '',
+                category: '',
                 variation: '',
                 quantity: '',
                 purchasePrice: '',
@@ -77,6 +83,8 @@ export function CreateGrnItemModal({ isOpen, onClose, onAdd }: CreateGrnItemModa
         setItemData(prev => ({
             ...prev,
             productName: p.name || '',
+            unitType: p.unitType || '',
+            category: p.category || p.categoryName || '',
         }));
         setShowProductDropdown(false);
     };
@@ -101,6 +109,8 @@ export function CreateGrnItemModal({ isOpen, onClose, onAdd }: CreateGrnItemModa
         const itemPayload: Partial<GrnItem> = {
             productId: productId,
             productName: itemData.productName,
+            unitType: itemData.unitType,
+            category: itemData.category,
             variation: itemData.variation,
             variationId: variationId,
             quantity: Number(itemData.quantity) || 0,
@@ -197,6 +207,22 @@ export function CreateGrnItemModal({ isOpen, onClose, onAdd }: CreateGrnItemModa
                                 <div className="space-y-1.5 lg:col-span-1">
                                     <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Brand</label>
                                     <input name="brand" value={itemData.brand} onChange={handleItemChange} type="text" className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                                </div>
+                                <div className="space-y-1.5 lg:col-span-1">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Unit Type</label>
+                                    <select name="unitType" value={itemData.unitType} onChange={handleItemChange} className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                        <option value="" disabled>Select unit type</option>
+                                        {itemData.unitType && !UNIT_TYPES.includes(itemData.unitType) && (
+                                            <option value={itemData.unitType}>{itemData.unitType}</option>
+                                        )}
+                                        {UNIT_TYPES.map((u) => (
+                                            <option key={u} value={u}>{u}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-1.5 lg:col-span-1">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Category</label>
+                                    <input name="category" value={itemData.category} onChange={handleItemChange} type="text" className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" placeholder="e.g. DRINK" />
                                 </div>
                                 <div className="space-y-1.5 lg:col-span-1">
                                     <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Quantity</label>

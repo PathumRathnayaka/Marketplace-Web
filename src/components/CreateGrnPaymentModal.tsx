@@ -103,8 +103,8 @@ export function CreateGrnPaymentModal({
                 if (!currentItem.productId) {
                     const productRes: any = await productApi.create({
                         name: currentItem.productName,
-                        category: 'Uncategorized',
-                        unitType: 'Units',
+                        category: currentItem.category || 'Uncategorized',
+                        unitType: currentItem.unitType || 'Units',
                         status: 'ACTIVE',
                         minimumQuantity: 0,
                     });
