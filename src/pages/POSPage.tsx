@@ -47,6 +47,8 @@ export function POSPage() {
     const [paymentMethod, setPaymentMethod] = useState('CASH');
     const [paid, setPaid] = useState<number | ''>('');
     const [addToWallet, setAddToWallet] = useState(false);
+    const [walletBalance, setWalletBalance] = useState(0);
+    const [useWallet, setUseWallet] = useState(true);
 
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -59,14 +61,35 @@ export function POSPage() {
             .catch(console.error);
     }, []);
 
+    // Load the selected customer's wallet balance so it can be applied at checkout.
+    useEffect(() => {
+        if (!customer) {
+            setWalletBalance(0);
+            return;
+        }
+        let active = true;
+        walletApi.list()
+            .then((wallets) => {
+                if (!active) return;
+                const cid = customer.mysqlId || customer.id;
+                const w = wallets.find((x) => x.customerId === cid || x.customerContact === customer.contact);
+                setWalletBalance(Number(w?.balance) || 0);
+            })
+            .catch(() => active && setWalletBalance(0));
+        return () => { active = false; };
+    }, [customer]);
+
     const subtotal = useMemo(
         () => cart.reduce((sum, line) => sum + line.salePrice * line.quantity, 0),
         [cart]
     );
     const discountValue = Number(discount) || 0;
     const total = Math.max(0, subtotal - discountValue);
+    // Apply the customer's wallet balance against the total; they only pay the rest.
+    const walletApplied = useWallet && customer ? Math.min(walletBalance, total) : 0;
+    const netPayable = Math.max(0, total - walletApplied);
     const paidValue = Number(paid) || 0;
-    const change = Math.max(0, paidValue - total);
+    const change = Math.max(0, paidValue - netPayable);
 
     const filtered = search.trim()
         ? sellables.filter((s) => {
@@ -106,6 +129,7 @@ export function POSPage() {
         setCustomer(null);
         setPaid('');
         setAddToWallet(false);
+        setUseWallet(true);
         setMode('cart');
     };
 
@@ -122,8 +146,8 @@ export function POSPage() {
 
     const completePayment = async () => {
         setError(null);
-        if (paidValue < total) {
-            setError('Paid amount cannot be less than the total.');
+        if (paidValue < netPayable) {
+            setError('Paid amount cannot be less than the payable amount.');
             return;
         }
         if (addToWallet && !customer) {
@@ -146,7 +170,8 @@ export function POSPage() {
                 taxAmount: 0,
                 discountAmount: discountValue,
                 totalAmount: total,
-                paidAmount: paidValue,
+                // Total is settled by wallet credit applied + cash paid.
+                paidAmount: walletApplied + paidValue,
                 changeAmount: keepChangeInWallet ? 0 : change,
                 paymentMethod,
                 saleItems: cart.map((l) => ({
@@ -162,15 +187,17 @@ export function POSPage() {
 
             await salesApi.create(salePayload);
 
-            if (keepChangeInWallet && customer) {
-                await creditWallet(customer, change);
+            // Net wallet movement: subtract the amount spent from the wallet, then add
+            // any change the cashier chose to keep in the wallet.
+            const walletDelta = (keepChangeInWallet ? change : 0) - walletApplied;
+            if (customer && walletDelta !== 0) {
+                await adjustWallet(customer, walletDelta);
             }
 
-            setSuccess(
-                keepChangeInWallet
-                    ? `Sale completed. ${formatMoney(change)} added to ${customer?.contact}'s wallet.`
-                    : 'Sale completed successfully.'
-            );
+            const parts: string[] = [];
+            if (walletApplied > 0) parts.push(`${formatMoney(walletApplied)} paid from wallet`);
+            if (keepChangeInWallet) parts.push(`${formatMoney(change)} change added to wallet`);
+            setSuccess(parts.length ? `Sale completed. ${parts.join(', ')}.` : 'Sale completed successfully.');
             resetSale();
         } catch (err: any) {
             setError(err instanceof Error ? err.message : 'Failed to complete the sale.');
@@ -217,6 +244,8 @@ export function POSPage() {
                             paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
                             paid={paid} setPaid={setPaid} change={change}
                             customer={customer} addToWallet={addToWallet} setAddToWallet={setAddToWallet}
+                            walletBalance={walletBalance} walletApplied={walletApplied} netPayable={netPayable}
+                            useWallet={useWallet} setUseWallet={setUseWallet}
                             onCancel={() => setMode('cart')} onComplete={completePayment} saving={saving}
                         />
                     )}
@@ -372,6 +401,8 @@ interface PaymentViewProps {
     paymentMethod: string; setPaymentMethod: (v: string) => void;
     paid: number | ''; setPaid: (v: number | '') => void; change: number;
     customer: Customer | null; addToWallet: boolean; setAddToWallet: (v: boolean) => void;
+    walletBalance: number; walletApplied: number; netPayable: number;
+    useWallet: boolean; setUseWallet: (v: boolean) => void;
     onCancel: () => void; onComplete: () => void; saving: boolean;
 }
 
@@ -403,13 +434,27 @@ function PaymentView(p: PaymentViewProps) {
                         <p className="font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Price Summary</p>
                         <div className="mt-2 flex justify-between"><span className="text-slate-500 dark:text-slate-400">Subtotal</span><span>{formatMoney(p.subtotal)}</span></div>
                         <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Discount</span><span>{formatMoney(p.discountValue)}</span></div>
-                        <div className="mt-1 flex justify-between border-t border-slate-200 pt-2 text-base font-bold dark:border-slate-800"><span>Total</span><span className="text-emerald-600">{formatMoney(p.total)}</span></div>
+                        <div className="mt-1 flex justify-between border-t border-slate-200 pt-2 font-semibold dark:border-slate-800"><span>Total</span><span>{formatMoney(p.total)}</span></div>
+                        {p.walletApplied > 0 && (
+                            <div className="flex justify-between text-emerald-600"><span>Wallet applied</span><span>- {formatMoney(p.walletApplied)}</span></div>
+                        )}
+                        <div className="mt-1 flex justify-between border-t border-slate-200 pt-2 text-base font-bold dark:border-slate-800"><span>Payable</span><span className="text-emerald-600">{formatMoney(p.netPayable)}</span></div>
                     </div>
+
+                    {p.customer && p.walletBalance > 0 && (
+                        <label className="flex items-center gap-3 rounded-lg border border-slate-300 p-3 text-sm dark:border-slate-700">
+                            <input type="checkbox" checked={p.useWallet}
+                                onChange={(e) => p.setUseWallet(e.target.checked)}
+                                className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                            <WalletIcon className="h-4 w-4 text-emerald-600" />
+                            <span>Use wallet balance <span className="text-slate-400">({formatMoney(p.walletBalance)} available)</span></span>
+                        </label>
+                    )}
                 </div>
 
                 <div className="space-y-5">
                     <div>
-                        <p className="text-lg font-bold text-emerald-600">Total: {formatMoney(p.total)}</p>
+                        <p className="text-lg font-bold text-emerald-600">Payable: {formatMoney(p.netPayable)}</p>
                         <label className="mt-3 block text-sm font-medium text-slate-700 dark:text-slate-200">Paid Amount</label>
                         <input
                             autoFocus type="number" step="0.01" min="0" value={p.paid}
@@ -488,22 +533,27 @@ function buildSellables(batches: ProductQuantityBatch[], products: Product[]): S
     return Array.from(byProduct.values());
 }
 
-async function creditWallet(customer: Customer, amount: number) {
+// Apply a signed change to a customer's wallet balance (negative deducts, positive credits).
+async function adjustWallet(customer: Customer, delta: number) {
     const customerId = customer.mysqlId || customer.id;
     const wallets = await walletApi.list();
     const existing = wallets.find((w) => w.customerId === customerId || w.customerContact === customer.contact);
 
     if (existing && (existing.mysqlId || existing.id)) {
+        const newBalance = Math.max(0, (Number(existing.balance) || 0) + delta);
         await walletApi.update(String(existing.mysqlId || existing.id), {
             ...existing,
-            balance: (Number(existing.balance) || 0) + amount,
+            balance: newBalance,
         });
         return;
     }
 
-    await walletApi.create({
-        customerId,
-        customerContact: customer.contact,
-        balance: amount,
-    });
+    // No wallet yet — only meaningful when crediting.
+    if (delta > 0) {
+        await walletApi.create({
+            customerId,
+            customerContact: customer.contact,
+            balance: delta,
+        });
+    }
 }
