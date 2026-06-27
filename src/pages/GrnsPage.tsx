@@ -8,7 +8,7 @@ import { useAsyncData } from '../hooks/useAsyncData';
 import { grnApi } from '../services/api';
 import { Grn } from '../types/pos';
 import { formatDate, formatDateTime, formatMoney } from '../utils/format';
-import { navigate } from '../utils/routing';
+import { navigate, navigateToGrn } from '../utils/routing';
 
 export function GrnsPage() {
   const loadGrns = useCallback(() => grnApi.list(), []);
@@ -45,6 +45,10 @@ export function GrnsPage() {
         error={error}
         emptyMessage="No GRNs found"
         getRowKey={(grn, index) => grn.id || grn.grnCode || index.toString()}
+        onRowClick={(grn) => {
+          const id = grn.id || grn.mysqlId || grn.grnCode;
+          if (id) navigateToGrn(id);
+        }}
         columns={[
           { key: 'code', header: 'GRN', render: (grn) => grn.grnCode || grn.mysqlId || '-' },
           { key: 'supplier', header: 'Supplier', render: (grn) => grn.supplierName || grn.supplierId || '-' },

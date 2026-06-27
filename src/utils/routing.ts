@@ -6,6 +6,7 @@ export type Route =
   | '/sales'
   | '/grns'
   | '/grns/create'
+  | '/grns/detail'
   | '/wallets'
   | '/inventory'
   | '/customers'
@@ -16,8 +17,25 @@ export function navigate(route: Route) {
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
+export function navigateToGrn(id: string) {
+  window.history.pushState({}, '', `/grns/${id}`);
+  window.dispatchEvent(new PopStateEvent('popstate'));
+}
+
+export function getGrnDetailId(): string | null {
+  const match = window.location.pathname.match(/^\/grns\/([^/]+)$/);
+  if (match && match[1] !== 'create') {
+    return decodeURIComponent(match[1]);
+  }
+  return null;
+}
+
 export function readRoute(): Route {
   const path = window.location.pathname;
+
+  if (/^\/grns\/[^/]+$/.test(path) && path !== '/grns/create') {
+    return '/grns/detail';
+  }
 
   if (
     path === '/signup' ||

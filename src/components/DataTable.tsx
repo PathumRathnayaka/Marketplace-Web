@@ -17,6 +17,7 @@ interface DataTableProps<T> {
   error: string;
   emptyMessage: string;
   getRowKey: (item: T, index: number) => string;
+  onRowClick?: (item: T, index: number) => void;
 }
 
 export function DataTable<T>({
@@ -28,6 +29,7 @@ export function DataTable<T>({
   error,
   emptyMessage,
   getRowKey,
+  onRowClick,
 }: DataTableProps<T>) {
   return (
     <section className="rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
@@ -69,7 +71,15 @@ export function DataTable<T>({
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {data.map((item, index) => (
-                  <tr key={getRowKey(item, index)} className="align-top">
+                  <tr
+                    key={getRowKey(item, index)}
+                    className={`align-top ${
+                      onRowClick
+                        ? 'cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                        : ''
+                    }`}
+                    onClick={onRowClick ? () => onRowClick(item, index) : undefined}
+                  >
                     {columns.map((column) => (
                       <td key={column.key} className="whitespace-nowrap px-4 py-3">
                         {column.render(item, index)}
