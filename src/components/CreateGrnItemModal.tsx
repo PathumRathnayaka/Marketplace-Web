@@ -101,6 +101,7 @@ export function CreateGrnItemModal({ isOpen, onClose, onAdd }: CreateGrnItemModa
         const itemPayload: Partial<GrnItem> = {
             productId: productId,
             productName: itemData.productName,
+            variation: itemData.variation,
             variationId: variationId,
             quantity: Number(itemData.quantity) || 0,
             purchasePrice: Number(itemData.purchasePrice) || 0,

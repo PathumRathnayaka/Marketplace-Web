@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
-import { grnApi } from '../services/api';
+import { grnApi, productApi, productVariationApi, inventoryApi } from '../services/api';
 import { Supplier, GrnItem } from '../types/pos';
 
 interface CreateGrnPaymentModalProps {
@@ -79,7 +79,63 @@ export function CreateGrnPaymentModal({
             const selectedSupplier = suppliers.find((s) => (s.mysqlId || s.id) === headerData.supplierId);
             const supplierName = selectedSupplier ? selectedSupplier.name : '';
 
-            // 1. Create GRN object
+            // 1. Resolve missing IDs and auto-create Batches out of EVERY mapped line directly
+            const hydratedItems: Partial<GrnItem>[] = [];
+
+            for (const rootItem of items) {
+                let currentItem = { ...rootItem };
+
+                // A. Check Product existence
+                if (!currentItem.productId) {
+                    const productRes: any = await productApi.create({
+                        name: currentItem.productName,
+                        category: 'Uncategorized',
+                        unitType: 'Units',
+                        status: 'ACTIVE',
+                        minimumQuantity: 0,
+                    });
+                    const productData = productRes?.data || productRes;
+                    currentItem.productId = productData.mysqlId || productData.id;
+                }
+
+                // B. Check Variation existence
+                if (!currentItem.variationId && currentItem.productId) {
+                    const variationRes: any = await productVariationApi.create({
+                        productId: currentItem.productId,
+                        productName: currentItem.productName,
+                        variation: currentItem.variation || 'Default',
+                    });
+                    const variationData = variationRes?.data || variationRes;
+                    currentItem.variationId = variationData.mysqlId || variationData.id;
+                }
+
+                // C. Explicitly bind Inventory Batches exactly bridging native Modal actions automatically!
+                await inventoryApi.createBatch({
+                    productId: currentItem.productId,
+                    productName: currentItem.productName,
+                    variationId: currentItem.variationId,
+                    variationSize: null,
+                    supplierId: headerData.supplierId,
+                    supplierName: supplierName,
+                    barcode: currentItem.barcode,
+                    quantity: Number(currentItem.quantity) || 0,
+                    batchCode: headerData.batchCode,
+                    salePrice: Number(currentItem.salePrice) || 0,
+                    purchasePrice: Number(currentItem.purchasePrice) || 0,
+                    ourPrice: Number(currentItem.ourPrice) || 0,
+                    brand: currentItem.brand,
+                    warehouseNo: currentItem.warehouseNo,
+                    discount: Number(currentItem.discount) || 0,
+                    tax: Number(currentItem.tax) || 0,
+                    expireDate: currentItem.expireDate,
+                });
+
+                // Attach batch payload securely
+                currentItem.batchCode = headerData.batchCode;
+                hydratedItems.push(currentItem);
+            }
+
+            // 2. Transact fully hydrated GRN object
             const grnPayload = {
                 grnCode: headerData.grnCode,
                 supplierId: headerData.supplierId,
@@ -91,10 +147,7 @@ export function CreateGrnPaymentModal({
                 dueAmount: Number(formData.dueAmount) || 0,
                 status: formData.status,
                 paymentStatus: formData.paymentStatus,
-                items: items.map(item => ({
-                    ...item,
-                    batchCode: headerData.batchCode
-                })),
+                items: hydratedItems,
             };
 
             const grnRes: any = await grnApi.create(grnPayload);
@@ -105,7 +158,7 @@ export function CreateGrnPaymentModal({
                 throw new Error("Created GRN safely but failed to read returned ID for Payment linking.");
             }
 
-            // 2. Create underlying GRN Payment 
+            // 3. Create underlying GRN Payment 
             const paymentPayload = {
                 grnMysqlId: grnMysqlId,
                 paymentDate: formData.paymentDate,
