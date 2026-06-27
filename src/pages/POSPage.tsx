@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { PosCustomerModal } from '../components/PosCustomerModal';
-import { getStoredAuth, inventoryApi, productApi, salesApi, walletApi } from '../services/api';
+import { NumberPadModal } from '../components/NumberPadModal';
+import { customerApi, getStoredAuth, inventoryApi, productApi, salesApi, walletApi } from '../services/api';
 import { Customer, Product, ProductQuantityBatch } from '../types/pos';
 import { formatMoney } from '../utils/format';
 import { navigate } from '../utils/routing';
@@ -54,9 +55,18 @@ export function POSPage() {
     const [useWallet, setUseWallet] = useState(true);
 
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+    const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+    const [isQtyPadOpen, setIsQtyPadOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+
+    // Auto-dismiss the success confirmation after 3 seconds.
+    useEffect(() => {
+        if (!success) return;
+        const timer = setTimeout(() => setSuccess(null), 3000);
+        return () => clearTimeout(timer);
+    }, [success]);
 
     useEffect(() => {
         Promise.all([inventoryApi.listBatches(), productApi.list()])
@@ -88,8 +98,10 @@ export function POSPage() {
     );
     const discountValue = Number(discount) || 0;
     const total = Math.max(0, subtotal - discountValue);
+    // Walk-in customers never use a wallet.
+    const isWalkIn = (customer?.contact || '') === WALK_IN_CONTACT;
     // Apply the customer's wallet balance against the total; they only pay the rest.
-    const walletApplied = useWallet && customer ? Math.min(walletBalance, total) : 0;
+    const walletApplied = useWallet && customer && !isWalkIn ? Math.min(walletBalance, total) : 0;
     const netPayable = Math.max(0, total - walletApplied);
     const paidValue = Number(paid) || 0;
     const change = Math.max(0, paidValue - netPayable);
@@ -124,7 +136,24 @@ export function POSPage() {
         );
     };
 
-    const removeLine = (productId: string) => setCart((prev) => prev.filter((l) => l.productId !== productId));
+    const removeLine = (productId: string) => {
+        setCart((prev) => prev.filter((l) => l.productId !== productId));
+        setSelectedProductId((prev) => (prev === productId ? null : prev));
+    };
+
+    const openQtyPad = () => {
+        setError(null);
+        if (!selectedProductId) {
+            setError('Tap a product row in the cart first, then press Quantity.');
+            return;
+        }
+        setIsQtyPadOpen(true);
+    };
+
+    const setLineQuantity = (qty: number) => {
+        if (!selectedProductId) return;
+        setCart((prev) => prev.map((l) => (l.productId === selectedProductId ? { ...l, quantity: qty } : l)));
+    };
 
     const resetSale = () => {
         setCart([]);
@@ -133,6 +162,7 @@ export function POSPage() {
         setPaid('');
         setAddToWallet(false);
         setUseWallet(true);
+        setSelectedProductId(null);
         setMode('cart');
     };
 
@@ -143,8 +173,36 @@ export function POSPage() {
             setError('Add at least one product before payment.');
             return;
         }
+        if (!customer) {
+            setError('Please add a customer first, or use Quick Sale for a walk-in customer.');
+            setIsCustomerModalOpen(true);
+            return;
+        }
         setPaid('');
         setMode('payment');
+    };
+
+    // Quick Sale = walk-in customer. No manual customer entry; the sale is still
+    // recorded against a single shared walk-in customer in the database.
+    const handleQuickSale = async () => {
+        setError(null);
+        setSuccess(null);
+        if (cart.length === 0) {
+            setError('Add at least one product before payment.');
+            return;
+        }
+        setSaving(true);
+        try {
+            const walkIn = await getOrCreateWalkInCustomer();
+            setCustomer(walkIn);
+            setUseWallet(false); // walk-in customer should not auto-spend a shared wallet
+            setPaid('');
+            setMode('payment');
+        } catch (err: any) {
+            setError(err instanceof Error ? err.message : 'Failed to start a quick sale.');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const completePayment = async () => {
@@ -161,7 +219,7 @@ export function POSPage() {
         setSaving(true);
         try {
             const auth = getStoredAuth();
-            const keepChangeInWallet = addToWallet && change > 0 && !!customer;
+            const keepChangeInWallet = addToWallet && change > 0 && !!customer && !isWalkIn;
 
             const salePayload = {
                 saleId: `SALE-${Date.now()}`,
@@ -239,6 +297,7 @@ export function POSPage() {
                             showDropdown={showDropdown} setShowDropdown={setShowDropdown}
                             filtered={filtered} addToCart={addToCart}
                             cart={cart} changeQty={changeQty} removeLine={removeLine}
+                            selectedProductId={selectedProductId} onSelectRow={setSelectedProductId}
                             subtotal={subtotal} discount={discount} setDiscount={setDiscount} total={total}
                         />
                     ) : (
@@ -248,7 +307,7 @@ export function POSPage() {
                             paid={paid} setPaid={setPaid} change={change}
                             customer={customer} addToWallet={addToWallet} setAddToWallet={setAddToWallet}
                             walletBalance={walletBalance} walletApplied={walletApplied} netPayable={netPayable}
-                            useWallet={useWallet} setUseWallet={setUseWallet}
+                            useWallet={useWallet} setUseWallet={setUseWallet} isWalkIn={isWalkIn}
                             onCancel={() => setMode('cart')} onComplete={completePayment} saving={saving}
                         />
                     )}
@@ -259,7 +318,7 @@ export function POSPage() {
             <aside className="w-full shrink-0 space-y-3 overflow-y-auto lg:w-[340px]">
                     <div className="grid grid-cols-2 gap-3">
                         <PosButton icon={Trash2} label="Delete" />
-                        <PosButton icon={Boxes} label="Quantity" />
+                        <PosButton icon={Boxes} label="Quantity" onClick={openQtyPad} />
                         <PosButton icon={UserRoundPlus} label="Customer" onClick={() => setIsCustomerModalOpen(true)} />
                         <PosButton icon={Lock} label="Lock" />
                         <PosButton icon={Pause} label="Pause" variant="pause" />
@@ -268,7 +327,9 @@ export function POSPage() {
 
                     <button
                         type="button"
-                        className="flex w-full items-center justify-center gap-3 rounded-xl bg-slate-800 px-4 py-5 text-base font-bold text-white transition hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600"
+                        onClick={handleQuickSale}
+                        disabled={cart.length === 0 || mode === 'payment' || saving}
+                        className="flex w-full items-center justify-center gap-3 rounded-xl bg-slate-800 px-4 py-5 text-base font-bold text-white transition hover:bg-slate-700 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
                     >
                         <CircleDollarSign className="h-6 w-6" /> Quick Sale
                     </button>
@@ -300,6 +361,14 @@ export function POSPage() {
                 isOpen={isCustomerModalOpen}
                 onClose={() => setIsCustomerModalOpen(false)}
                 onSelect={setCustomer}
+            />
+
+            <NumberPadModal
+                isOpen={isQtyPadOpen}
+                title="Enter Quantity"
+                initialValue={cart.find((l) => l.productId === selectedProductId)?.quantity}
+                onClose={() => setIsQtyPadOpen(false)}
+                onSubmit={setLineQuantity}
             />
         </div>
     );
@@ -336,6 +405,7 @@ interface CartViewProps {
     showDropdown: boolean; setShowDropdown: (v: boolean) => void;
     filtered: Sellable[]; addToCart: (s: Sellable) => void;
     cart: CartLine[]; changeQty: (id: string, d: number) => void; removeLine: (id: string) => void;
+    selectedProductId: string | null; onSelectRow: (id: string) => void;
     subtotal: number; discount: number | ''; setDiscount: (v: number | '') => void; total: number;
 }
 
@@ -391,7 +461,11 @@ function CartView(p: CartViewProps) {
                             <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-500">Cart is empty. Search and click a product to add it.</td></tr>
                         ) : (
                             p.cart.map((line, index) => (
-                                <tr key={line.productId} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                <tr key={line.productId}
+                                    onClick={() => p.onSelectRow(line.productId)}
+                                    className={`cursor-pointer ${p.selectedProductId === line.productId
+                                        ? 'bg-emerald-50 ring-1 ring-inset ring-emerald-300 dark:bg-emerald-950/40 dark:ring-emerald-700'
+                                        : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}>
                                     <td className="px-4 py-3 text-slate-400">{index + 1}</td>
                                     <td className="px-4 py-3 font-medium">{line.productName}</td>
                                     <td className="px-4 py-3 text-slate-500">{line.category || '-'}</td>
@@ -440,7 +514,7 @@ interface PaymentViewProps {
     paid: number | ''; setPaid: (v: number | '') => void; change: number;
     customer: Customer | null; addToWallet: boolean; setAddToWallet: (v: boolean) => void;
     walletBalance: number; walletApplied: number; netPayable: number;
-    useWallet: boolean; setUseWallet: (v: boolean) => void;
+    useWallet: boolean; setUseWallet: (v: boolean) => void; isWalkIn: boolean;
     onCancel: () => void; onComplete: () => void; saving: boolean;
 }
 
@@ -479,7 +553,7 @@ function PaymentView(p: PaymentViewProps) {
                         <div className="mt-1 flex justify-between border-t border-slate-200 pt-2 text-base font-bold dark:border-slate-800"><span>Payable</span><span className="text-emerald-600">{formatMoney(p.netPayable)}</span></div>
                     </div>
 
-                    {p.customer && p.walletBalance > 0 && (
+                    {p.customer && !p.isWalkIn && p.walletBalance > 0 && (
                         <label className="flex items-center gap-3 rounded-lg border border-slate-300 p-3 text-sm dark:border-slate-700">
                             <input type="checkbox" checked={p.useWallet}
                                 onChange={(e) => p.setUseWallet(e.target.checked)}
@@ -503,14 +577,15 @@ function PaymentView(p: PaymentViewProps) {
                         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Change / Balance: <span className="font-semibold text-slate-800 dark:text-slate-100">{formatMoney(p.change)}</span></p>
                     </div>
 
-                    <label className={`flex items-center gap-3 rounded-lg border p-3 text-sm ${p.customer ? 'border-slate-300 dark:border-slate-700' : 'border-slate-200 opacity-60 dark:border-slate-800'}`}>
-                        <input type="checkbox" checked={p.addToWallet} disabled={!p.customer || p.change <= 0}
+                    <label className={`flex items-center gap-3 rounded-lg border p-3 text-sm ${p.customer && !p.isWalkIn ? 'border-slate-300 dark:border-slate-700' : 'border-slate-200 opacity-60 dark:border-slate-800'}`}>
+                        <input type="checkbox" checked={p.addToWallet && !p.isWalkIn} disabled={!p.customer || p.isWalkIn || p.change <= 0}
                             onChange={(e) => p.setAddToWallet(e.target.checked)}
                             className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
                         <WalletIcon className="h-4 w-4 text-emerald-600" />
                         <span>
                             Add balance to wallet
                             {!p.customer && <span className="block text-xs text-slate-400">Select a customer first</span>}
+                            {p.isWalkIn && <span className="block text-xs text-slate-400">Not available for walk-in customers</span>}
                         </span>
                     </label>
 
@@ -569,6 +644,19 @@ function buildSellables(batches: ProductQuantityBatch[], products: Product[]): S
     });
 
     return Array.from(byProduct.values());
+}
+
+// A single shared customer record used for all anonymous walk-in (Quick Sale) checkouts.
+const WALK_IN_CONTACT = 'WALK-IN';
+const WALK_IN_EMAIL = 'walk-in@pos.local';
+
+async function getOrCreateWalkInCustomer(): Promise<Customer> {
+    const customers = await customerApi.list();
+    const existing = customers.find((c) => (c.contact || '') === WALK_IN_CONTACT);
+    if (existing) return existing;
+
+    const res: any = await customerApi.create({ contact: WALK_IN_CONTACT, email: WALK_IN_EMAIL });
+    return (res?.data || res) as Customer;
 }
 
 // Apply a signed change to a customer's wallet balance (negative deducts, positive credits).
