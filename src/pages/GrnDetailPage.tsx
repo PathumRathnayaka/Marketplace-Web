@@ -5,7 +5,7 @@ import { PageHeader } from '../components/PageHeader';
 import { StatusBadge } from '../components/StatusBadge';
 import { StatusMessage } from '../components/StatusMessage';
 import { useAsyncData } from '../hooks/useAsyncData';
-import { grnApi } from '../services/api';
+import { grnApi, productVariationApi } from '../services/api';
 import { Grn } from '../types/pos';
 import { formatDate, formatDateTime, formatMoney } from '../utils/format';
 import { getGrnDetailId, navigate } from '../utils/routing';
@@ -38,6 +38,24 @@ export function GrnDetailPage() {
     }, [grnId]);
 
     const { data: grn, loading, error } = useAsyncData<Grn | null>(loadGrn, null);
+
+    // The GRN item only stores variationId; the human-readable variation name lives
+    // on the product-variation record. Build a lookup keyed by both id and mysqlId.
+    const loadVariations = useCallback(() => productVariationApi.list(), []);
+    const { data: variations } = useAsyncData<any[]>(loadVariations, []);
+
+    const variationNameById = new Map<string, string>();
+    variations.forEach((v) => {
+        if (v.variation) {
+            if (v.id) variationNameById.set(String(v.id), v.variation);
+            if (v.mysqlId) variationNameById.set(String(v.mysqlId), v.variation);
+        }
+    });
+
+    const resolveVariation = (item: { variation?: string; variationId?: string }) =>
+        item.variation ||
+        (item.variationId ? variationNameById.get(String(item.variationId)) : undefined) ||
+        '-';
 
     const items = grn?.items ?? [];
 
@@ -116,7 +134,7 @@ export function GrnDetailPage() {
                                         items.map((item, index) => (
                                             <tr key={item.mysqlId || index} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                                 <td className="px-6 py-4 font-medium">{item.productName}</td>
-                                                <td className="px-6 py-4 text-slate-500">{item.variation || '-'}</td>
+                                                <td className="px-6 py-4 text-slate-500">{resolveVariation(item)}</td>
                                                 <td className="px-6 py-4">{item.barcode || '-'}</td>
                                                 <td className="px-6 py-4">{item.quantity}</td>
                                                 <td className="px-6 py-4">{formatMoney(item.purchasePrice)}</td>

@@ -57,7 +57,6 @@ export function SuppliersPage() {
         emptyMessage="No suppliers found"
         getRowKey={(supplier, index) => supplier.id || supplier.mysqlId || index.toString()}
         columns={[
-          { key: 'code', header: 'Code', render: (supplier) => supplier.mysqlId || '-' },
           { key: 'name', header: 'Name', render: (supplier) => supplier.name || '-' },
           {
             key: 'representative',
