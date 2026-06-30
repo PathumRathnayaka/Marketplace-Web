@@ -98,12 +98,15 @@ export interface ProductQuantityBatch {
   variationId?: string;
   barcode?: string;
   batchCode?: string;
+  supplierName?: string;
   quantity?: number;
   salePrice?: number;
   purchasePrice?: number;
   ourPrice?: number;
   expireDate?: string;
   warehouseNo?: string;
+  salePriority?: number | null;
+  createdAt?: string;
 }
 
 export interface Customer {

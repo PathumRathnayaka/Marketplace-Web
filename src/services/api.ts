@@ -164,6 +164,11 @@ export const inventoryApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  updateBatch: (id: string, data: Partial<ProductQuantityBatch>) =>
+    request<ApiResponse<ProductQuantityBatch>>(`/api/pos/api/v1/product-quantity-batches/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 };
 
 export const customerApi = {

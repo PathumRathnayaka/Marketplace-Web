@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { Package, Plus } from 'lucide-react';
 import { DataTable } from '../components/DataTable';
 import { CreateProductModal } from '../components/CreateProductModal';
+import { ProductBatchesModal } from '../components/ProductBatchesModal';
 import { MetricCard } from '../components/MetricCard';
 import { PageHeader } from '../components/PageHeader';
 import { StatusBadge } from '../components/StatusBadge';
@@ -13,6 +14,7 @@ import { formatDate } from '../utils/format';
 export function ProductsPage() {
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const loadProducts = useCallback(() => productApi.list(), [refreshCounter]);
   const { data: products, loading, error } = useAsyncData<Product[]>(loadProducts, []);
@@ -51,6 +53,7 @@ export function ProductsPage() {
         error={error}
         emptyMessage="No products found"
         getRowKey={(product, index) => product.id || product.mysqlId || index.toString()}
+        onRowClick={(product) => setSelectedProduct(product)}
         columns={[
           { key: 'mysqlId', header: 'Code', render: (product) => product.mysqlId || '-' },
           { key: 'name', header: 'Name', render: (product) => product.name || '-' },
@@ -68,6 +71,12 @@ export function ProductsPage() {
           setIsModalOpen(false);
           setRefreshCounter((prev) => prev + 1);
         }}
+      />
+
+      <ProductBatchesModal
+        isOpen={selectedProduct !== null}
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
       />
     </div>
   );
