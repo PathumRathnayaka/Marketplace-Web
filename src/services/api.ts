@@ -139,6 +139,11 @@ export const productReturnApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  update: (id: string, data: Partial<ProductReturn>) =>
+    request<ApiResponse<ProductReturn>>(`/api/pos/api/v1/product-returns/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 };
 
 export const grnApi = {

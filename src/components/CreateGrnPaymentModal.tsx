@@ -16,7 +16,7 @@ interface CreateGrnPaymentModalProps {
     baseCalculatedTotal: number;
     suppliers: Supplier[];
     onClose: () => void;
-    onSuccess: () => void;
+    onSuccess: (grnId: string) => void;
 }
 
 export function CreateGrnPaymentModal({
@@ -183,7 +183,7 @@ export function CreateGrnPaymentModal({
             };
 
             await grnApi.createPayment(paymentPayload);
-            onSuccess();
+            onSuccess(grnMysqlId);
         } catch (err: any) {
             setError(err instanceof Error ? err.message : 'Failed to finalize GRN and its payment.');
         } finally {

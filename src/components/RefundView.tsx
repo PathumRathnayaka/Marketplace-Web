@@ -16,6 +16,12 @@ interface ReturnSelection {
 
 const returnableQty = (item: SaleItem) => (Number(item.quantity) || 0) - (Number(item.returnedQuantity) || 0);
 
+let returnItemCounter = 0;
+function genReturnItemId() {
+    returnItemCounter += 1;
+    return `RTI-${Date.now().toString(36)}-${returnItemCounter}`;
+}
+
 export function RefundView({ onBack }: RefundViewProps) {
     const [contact, setContact] = useState('');
     const [sales, setSales] = useState<Sale[]>([]);
@@ -119,6 +125,7 @@ export function RefundView({ onBack }: RefundViewProps) {
                 refundAmount: refundTotal,
                 reason,
                 returnItems: items.map(({ item, qty }) => ({
+                    mysqlId: genReturnItemId(),
                     productId: item.productId,
                     productName: item.productName,
                     returnedQuantity: qty,

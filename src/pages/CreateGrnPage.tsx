@@ -3,9 +3,60 @@ import { Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { CreateGrnItemModal } from '../components/CreateGrnItemModal';
 import { CreateGrnPaymentModal } from '../components/CreateGrnPaymentModal';
-import { supplierApi } from '../services/api';
-import { Supplier, GrnItem } from '../types/pos';
+import { PendingSupplierReturnsModal, PendingReturnRow } from '../components/PendingSupplierReturnsModal';
+import { supplierApi, productReturnApi, inventoryApi, productVariationApi } from '../services/api';
+import { Supplier, GrnItem, ProductReturn, ProductQuantityBatch } from '../types/pos';
 import { navigate } from '../utils/routing';
+
+// Returned item's own price is what the customer paid, not the supplier's cost — prefer
+// the price on the batch it came from (the actual purchase price paid to that supplier).
+function buildPendingReturnRows(
+    supplierId: string,
+    returns: ProductReturn[],
+    batches: ProductQuantityBatch[],
+    variations: any[]
+): PendingReturnRow[] {
+    const batchById = new Map<string, ProductQuantityBatch>();
+    batches.forEach((b) => {
+        if (b.id) batchById.set(String(b.id), b);
+        if (b.mysqlId) batchById.set(String(b.mysqlId), b);
+    });
+
+    const rows: PendingReturnRow[] = [];
+    returns.forEach((ret) => {
+        (ret.returnItems || []).forEach((item) => {
+            if (item.supplierId !== supplierId) return;
+            if (item.replacementGrnId) return;
+            const qty = Number(item.returnedQuantity) || 0;
+            if (qty <= 0 || !item.mysqlId) return;
+
+            const batch = item.batchId ? batchById.get(String(item.batchId)) : undefined;
+            const variation = batch?.variationId
+                ? variations.find((v) => (v.id || v.mysqlId) === batch.variationId)?.variation
+                : undefined;
+
+            rows.push({
+                returnId: String(ret.id || ret.mysqlId),
+                returnItemId: item.mysqlId,
+                productId: item.productId,
+                productName: item.productName || 'Unnamed product',
+                variation,
+                variationId: batch?.variationId,
+                barcode: batch?.barcode,
+                brand: batch?.brand,
+                warehouseNo: batch?.warehouseNo,
+                salePrice: batch?.salePrice,
+                ourPrice: batch?.ourPrice,
+                tax: batch?.tax,
+                discount: batch?.discount,
+                quantity: qty,
+                purchasePrice: batch?.purchasePrice ?? (Number(item.unitPrice) || 0),
+            });
+        });
+    });
+
+    return rows;
+}
 
 export function CreateGrnPage() {
     const [headerData, setHeaderData] = useState({
@@ -17,27 +68,101 @@ export function CreateGrnPage() {
     });
 
     const [items, setItems] = useState<Partial<GrnItem>[]>([]);
+    // Kept in lockstep with `items` (same index) so a completed GRN can mark the
+    // originating return item as replaced, without adding stray fields to the GRN payload.
+    const [itemReturnRefs, setItemReturnRefs] = useState<Array<{ returnId: string; returnItemId: string } | null>>([]);
 
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [returns, setReturns] = useState<ProductReturn[]>([]);
+    const [batches, setBatches] = useState<ProductQuantityBatch[]>([]);
+    const [variations, setVariations] = useState<any[]>([]);
+
     const [isItemModalOpen, setIsItemModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [isReturnsModalOpen, setIsReturnsModalOpen] = useState(false);
+    const [pendingReturnRows, setPendingReturnRows] = useState<PendingReturnRow[]>([]);
 
     useEffect(() => {
         supplierApi.list().then(setSuppliers).catch(console.error);
+        productReturnApi.list().then(setReturns).catch(console.error);
+        inventoryApi.listBatches().then(setBatches).catch(console.error);
+        productVariationApi.list().then(setVariations).catch(console.error);
     }, []);
 
     const handleHeaderChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setHeaderData((prev) => ({ ...prev, [name]: value }));
+
+        if (name === 'supplierId' && value) {
+            const rows = buildPendingReturnRows(value, returns, batches, variations);
+            if (rows.length > 0) {
+                setPendingReturnRows(rows);
+                setIsReturnsModalOpen(true);
+            }
+        }
     };
 
     const handleAddItem = (item: Partial<GrnItem>) => {
         setItems(prev => [...prev, item]);
+        setItemReturnRefs(prev => [...prev, null]);
         setIsItemModalOpen(false);
+    };
+
+    const handleAddReturnItems = (rows: PendingReturnRow[]) => {
+        const newItems: Partial<GrnItem>[] = rows.map((r) => ({
+            productId: r.productId,
+            productName: r.productName,
+            variation: r.variation,
+            variationId: r.variationId,
+            quantity: r.quantity,
+            purchasePrice: r.purchasePrice,
+            salePrice: r.salePrice,
+            ourPrice: r.ourPrice,
+            barcode: r.barcode,
+            brand: r.brand,
+            warehouseNo: r.warehouseNo,
+            tax: r.tax,
+            discount: r.discount,
+            expireDate: '',
+        }));
+        setItems(prev => [...prev, ...newItems]);
+        setItemReturnRefs(prev => [...prev, ...rows.map((r) => ({ returnId: r.returnId, returnItemId: r.returnItemId }))]);
+        setIsReturnsModalOpen(false);
     };
 
     const handleRemoveItem = (index: number) => {
         setItems(prev => prev.filter((_, i) => i !== index));
+        setItemReturnRefs(prev => prev.filter((_, i) => i !== index));
+    };
+
+    // Stamp replacementGrnId on every return item this GRN was created to replace.
+    const markReturnsReplaced = async (grnId: string) => {
+        const refs = itemReturnRefs.filter((r): r is { returnId: string; returnItemId: string } => r !== null);
+        if (refs.length === 0) return;
+
+        const returnItemIdsByReturn = new Map<string, Set<string>>();
+        refs.forEach((r) => {
+            if (!returnItemIdsByReturn.has(r.returnId)) returnItemIdsByReturn.set(r.returnId, new Set());
+            returnItemIdsByReturn.get(r.returnId)!.add(r.returnItemId);
+        });
+
+        for (const [returnId, returnItemIds] of returnItemIdsByReturn) {
+            const original = returns.find((r) => String(r.id || r.mysqlId) === returnId);
+            if (!original) continue;
+            const updatedItems = (original.returnItems || []).map((item) =>
+                item.mysqlId && returnItemIds.has(item.mysqlId) ? { ...item, replacementGrnId: grnId } : item
+            );
+            await productReturnApi.update(returnId, { ...original, returnItems: updatedItems });
+        }
+    };
+
+    const handleGrnCreated = async (grnId: string) => {
+        try {
+            await markReturnsReplaced(grnId);
+        } catch (err) {
+            console.error('Failed to mark replaced returns', err);
+        }
+        navigate('/grns');
     };
 
     const handleSubmitCheckout = () => {
@@ -121,7 +246,14 @@ export function CreateGrnPage() {
                             ) : (
                                 items.map((item, index) => (
                                     <tr key={index} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium">{item.productName}</td>
+                                        <td className="px-6 py-4 font-medium">
+                                            {item.productName}
+                                            {itemReturnRefs[index] && (
+                                                <span className="ml-2 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                                                    Replacement
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 text-slate-500">{item.variation || '-'}</td>
                                         <td className="px-6 py-4">{item.quantity}</td>
                                         <td className="px-6 py-4 font-mono text-emerald-600">
@@ -159,7 +291,15 @@ export function CreateGrnPage() {
                 baseCalculatedTotal={calculatedTotalAmount}
                 suppliers={suppliers}
                 onClose={() => setIsPaymentModalOpen(false)}
-                onSuccess={() => navigate('/grns')}
+                onSuccess={handleGrnCreated}
+            />
+
+            <PendingSupplierReturnsModal
+                isOpen={isReturnsModalOpen}
+                supplierName={suppliers.find(s => (s.mysqlId || s.id) === headerData.supplierId)?.name || ''}
+                rows={pendingReturnRows}
+                onClose={() => setIsReturnsModalOpen(false)}
+                onConfirm={handleAddReturnItems}
             />
         </div>
     );
