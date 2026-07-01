@@ -8,6 +8,7 @@ import {
 import { PageHeader } from '../components/PageHeader';
 import { PosCustomerModal } from '../components/PosCustomerModal';
 import { NumberPadModal } from '../components/NumberPadModal';
+import { RefundView } from '../components/RefundView';
 import { customerApi, getStoredAuth, inventoryApi, productApi, salesApi, walletApi } from '../services/api';
 import { Customer, Product, ProductQuantityBatch } from '../types/pos';
 import { formatMoney } from '../utils/format';
@@ -54,7 +55,7 @@ export function POSPage() {
     const [discount, setDiscount] = useState<number | ''>('');
     const [customer, setCustomer] = useState<Customer | null>(null);
 
-    const [mode, setMode] = useState<'cart' | 'payment'>('cart');
+    const [mode, setMode] = useState<'cart' | 'payment' | 'refund'>('cart');
     const [paymentMethod, setPaymentMethod] = useState('CASH');
     const [paid, setPaid] = useState<number | ''>('');
     const [addToWallet, setAddToWallet] = useState(false);
@@ -304,7 +305,9 @@ export function POSPage() {
                 )}
 
                 <div className="mt-4 min-h-0 flex-1">
-                    {mode === 'cart' ? (
+                    {mode === 'refund' ? (
+                        <RefundView onBack={() => setMode('cart')} />
+                    ) : mode === 'cart' ? (
                         <CartView
                             search={search} setSearch={setSearch}
                             showDropdown={showDropdown} setShowDropdown={setShowDropdown}
@@ -358,7 +361,7 @@ export function POSPage() {
 
                     <div className="grid grid-cols-3 gap-3">
                         <PosButton icon={Tag} label="Discount" />
-                        <PosButton icon={RotateCcw} label="Refund" onClick={() => navigate('/refund')} />
+                        <PosButton icon={RotateCcw} label="Refund" onClick={() => setMode('refund')} />
                         <PosButton icon={BarChart3} label="Stats" />
                     </div>
 

@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { ArrowLeft, Search, Loader2, CheckCircle2, AlertCircle, Undo2 } from 'lucide-react';
-import { PageHeader } from '../components/PageHeader';
 import { salesApi, productReturnApi } from '../services/api';
+import { ReturnReasonModal } from './ReturnReasonModal';
 import { adjustWallet } from '../utils/wallet';
 import { Sale, SaleItem } from '../types/pos';
 import { formatDateTime, formatMoney } from '../utils/format';
-import { navigate } from '../utils/routing';
+
+interface RefundViewProps {
+    onBack: () => void;
+}
 
 interface ReturnSelection {
     [saleItemId: string]: { checked: boolean; qty: number };
@@ -13,7 +16,7 @@ interface ReturnSelection {
 
 const returnableQty = (item: SaleItem) => (Number(item.quantity) || 0) - (Number(item.returnedQuantity) || 0);
 
-export function RefundPage() {
+export function RefundView({ onBack }: RefundViewProps) {
     const [contact, setContact] = useState('');
     const [sales, setSales] = useState<Sale[]>([]);
     const [searched, setSearched] = useState(false);
@@ -23,6 +26,7 @@ export function RefundPage() {
     const [selection, setSelection] = useState<ReturnSelection>({});
 
     const [saving, setSaving] = useState(false);
+    const [isReasonOpen, setIsReasonOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
 
@@ -78,16 +82,28 @@ export function RefundPage() {
         return sum + qty * (Number(it.unitPrice) || 0);
     }, 0);
 
-    const submitReturn = async () => {
-        if (!activeSale) return;
-        setError(null);
-
-        const items = selectedItems
+    const collectItems = () =>
+        selectedItems
             .map((it) => ({ item: it, qty: selection[it.mysqlId!]?.qty || 0 }))
             .filter(({ item, qty }) => qty > 0 && qty <= returnableQty(item));
 
+    const openReasonModal = () => {
+        setError(null);
+        if (collectItems().length === 0) {
+            setError('Select at least one item with a valid return quantity.');
+            return;
+        }
+        setIsReasonOpen(true);
+    };
+
+    const submitReturn = async (reason: string) => {
+        if (!activeSale) return;
+        setError(null);
+
+        const items = collectItems();
         if (items.length === 0) {
             setError('Select at least one item with a valid return quantity.');
+            setIsReasonOpen(false);
             return;
         }
 
@@ -101,7 +117,7 @@ export function RefundPage() {
                 customerContact: activeSale.customerContact,
                 refundMethod: 'WALLET',
                 refundAmount: refundTotal,
-                reason: 'Customer return',
+                reason,
                 returnItems: items.map(({ item, qty }) => ({
                     productId: item.productId,
                     productName: item.productName,
@@ -109,7 +125,7 @@ export function RefundPage() {
                     unitPrice: item.unitPrice,
                     returnAmount: qty * (Number(item.unitPrice) || 0),
                     saleItemId: item.mysqlId,
-                    condition: 'RETURNED',
+                    condition: reason,
                     batchId: item.batchId,
                     supplierId: item.supplierId,
                     supplierName: item.supplierName,
@@ -137,6 +153,7 @@ export function RefundPage() {
             const refreshedSale = { ...activeSale, saleItems: updatedItems };
             setSales((prev) => prev.map((s) => (s === activeSale ? refreshedSale : s)));
             setActiveSale(null);
+            setIsReasonOpen(false);
         } catch (err: any) {
             setError(err instanceof Error ? err.message : 'Failed to process the return');
         } finally {
@@ -145,15 +162,19 @@ export function RefundPage() {
     };
 
     return (
-        <div className="px-5 py-6 sm:px-7 max-w-5xl mx-auto space-y-6">
-            <button
-                onClick={() => navigate('/pos')}
-                className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
-            >
-                <ArrowLeft className="h-4 w-4" /> Back to POS
-            </button>
-
-            <PageHeader title="Refund / Return" description="Find a customer's sales by contact, then return purchased items to their wallet." />
+        <div className="flex h-full flex-col gap-4 overflow-auto pr-1">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h3 className="text-lg font-semibold">Refund / Return</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Find sales by contact or invoice ID, then return items to the wallet.</p>
+                </div>
+                <button
+                    onClick={onBack}
+                    className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                    <ArrowLeft className="h-4 w-4" /> Back to Cart
+                </button>
+            </div>
 
             {error && (
                 <div className="flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-900/30 dark:text-red-400">
@@ -166,7 +187,7 @@ export function RefundPage() {
                 </div>
             )}
 
-            {/* Customer search */}
+            {/* Customer / invoice search */}
             <div className="flex gap-2">
                 <div className="relative flex-1">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -194,7 +215,7 @@ export function RefundPage() {
                         <h3 className="font-semibold">Sales {sales.length > 0 && `(${sales.length})`}</h3>
                     </div>
                     {sales.length === 0 ? (
-                        <p className="px-5 py-8 text-center text-sm text-slate-500">No sales found for this contact.</p>
+                        <p className="px-5 py-8 text-center text-sm text-slate-500">No sales found.</p>
                     ) : (
                         <div className="divide-y divide-slate-200 dark:divide-slate-800">
                             {sales.map((sale) => {
@@ -270,7 +291,7 @@ export function RefundPage() {
                                                         Refund to wallet: <span className="text-lg font-bold text-emerald-600">{formatMoney(refundTotal)}</span>
                                                     </p>
                                                     <button
-                                                        onClick={submitReturn}
+                                                        onClick={openReasonModal}
                                                         disabled={saving || refundTotal <= 0}
                                                         className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50"
                                                     >
@@ -286,6 +307,14 @@ export function RefundPage() {
                     )}
                 </div>
             )}
+
+            <ReturnReasonModal
+                isOpen={isReasonOpen}
+                saving={saving}
+                refundAmount={formatMoney(refundTotal)}
+                onClose={() => setIsReasonOpen(false)}
+                onConfirm={submitReturn}
+            />
         </div>
     );
 }
