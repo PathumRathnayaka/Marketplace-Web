@@ -25,3 +25,16 @@
     -moz-appearance: textfield;
   }
 }
+
+/* Thermal receipt printing: 80mm roll, no browser margins. */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+}

@@ -9,6 +9,7 @@ import { PageHeader } from '../components/PageHeader';
 import { PosCustomerModal } from '../components/PosCustomerModal';
 import { NumberPadModal } from '../components/NumberPadModal';
 import { RefundView } from '../components/RefundView';
+import { InvoiceReceipt, ReceiptData } from '../components/InvoiceReceipt';
 import { customerApi, getStoredAuth, inventoryApi, productApi, salesApi, walletApi } from '../services/api';
 import { Customer, Product, ProductQuantityBatch } from '../types/pos';
 import { formatMoney } from '../utils/format';
@@ -69,6 +70,14 @@ export function POSPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [lastReceipt, setLastReceipt] = useState<ReceiptData | null>(null);
+
+    // Fire the browser print dialog once the receipt content has actually committed to the DOM.
+    useEffect(() => {
+        if (!lastReceipt) return;
+        const timer = setTimeout(() => window.print(), 150);
+        return () => clearTimeout(timer);
+    }, [lastReceipt]);
 
     // Auto-dismiss the success confirmation after 3 seconds.
     useEffect(() => {
@@ -234,9 +243,11 @@ export function POSPage() {
             const auth = getStoredAuth();
             const keepChangeInWallet = addToWallet && change > 0 && !!customer && !isWalkIn;
             const allocation = allocateSaleItems(cart, batchesByProduct);
+            const saleId = `SALE-${Date.now()}`;
+            const saleDate = new Date().toISOString();
 
             const salePayload = {
-                saleId: `SALE-${Date.now()}`,
+                saleId,
                 customerId: customer?.mysqlId || customer?.id,
                 customerContact: customer?.contact,
                 cashierId: auth?.user.id,
@@ -273,6 +284,29 @@ export function POSPage() {
             if (walletApplied > 0) parts.push(`${formatMoney(walletApplied)} paid from wallet`);
             if (keepChangeInWallet) parts.push(`${formatMoney(change)} change added to wallet`);
             setSuccess(parts.length ? `Sale completed. ${parts.join(', ')}.` : 'Sale completed successfully.');
+
+            // Capture the receipt from current cart/totals before resetSale() clears them,
+            // then print it (thermal-formatted, triggered by the effect above).
+            setLastReceipt({
+                saleId,
+                date: saleDate,
+                cashierName: auth?.user.fullName,
+                customerContact: isWalkIn ? undefined : customer?.contact,
+                items: cart.map((l) => ({
+                    productName: l.productName,
+                    quantity: l.quantity,
+                    unitPrice: l.salePrice,
+                    subtotal: l.salePrice * l.quantity,
+                })),
+                subtotal,
+                discount: discountValue,
+                total,
+                walletApplied,
+                cashPaid: paidValue,
+                change: keepChangeInWallet ? 0 : change,
+                paymentMethod,
+            });
+
             resetSale();
         } catch (err: any) {
             setError(err instanceof Error ? err.message : 'Failed to complete the sale.');
@@ -282,7 +316,8 @@ export function POSPage() {
     };
 
     return (
-        <div className="flex h-screen flex-col gap-5 px-5 py-6 sm:px-7 lg:flex-row">
+        <>
+        <div className="flex h-screen flex-col gap-5 px-5 py-6 sm:px-7 lg:flex-row print:hidden">
             {/* Main area */}
             <div className="flex min-h-0 min-w-0 flex-1 flex-col">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -388,6 +423,9 @@ export function POSPage() {
                 onSubmit={setLineQuantity}
             />
         </div>
+
+        <InvoiceReceipt data={lastReceipt} />
+        </>
     );
 }
 
