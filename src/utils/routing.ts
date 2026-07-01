@@ -3,6 +3,7 @@ export type Route =
   | '/signup'
   | '/dashboard'
   | '/pos'
+  | '/refund'
   | '/products'
   | '/sales'
   | '/grns'
@@ -42,6 +43,7 @@ export function readRoute(): Route {
     path === '/signup' ||
     path === '/dashboard' ||
     path === '/pos' ||
+    path === '/refund' ||
     path === '/products' ||
     path === '/sales' ||
     path === '/grns' ||

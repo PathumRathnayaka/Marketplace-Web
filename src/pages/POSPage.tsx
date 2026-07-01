@@ -61,6 +61,7 @@ export function POSPage() {
     const [walletBalance, setWalletBalance] = useState(0);
     const [useWallet, setUseWallet] = useState(true);
 
+    const [batchesByProduct, setBatchesByProduct] = useState<Map<string, ProductQuantityBatch[]>>(new Map());
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [isQtyPadOpen, setIsQtyPadOpen] = useState(false);
@@ -77,7 +78,10 @@ export function POSPage() {
 
     useEffect(() => {
         Promise.all([inventoryApi.listBatches(), productApi.list()])
-            .then(([batches, products]) => setSellables(buildSellables(batches, products)))
+            .then(([batches, products]) => {
+                setSellables(buildSellables(batches, products));
+                setBatchesByProduct(buildBatchMap(batches));
+            })
             .catch(console.error);
     }, []);
 
@@ -228,6 +232,7 @@ export function POSPage() {
         try {
             const auth = getStoredAuth();
             const keepChangeInWallet = addToWallet && change > 0 && !!customer && !isWalkIn;
+            const allocation = allocateSaleItems(cart, batchesByProduct);
 
             const salePayload = {
                 saleId: `SALE-${Date.now()}`,
@@ -243,18 +248,18 @@ export function POSPage() {
                 paidAmount: walletApplied + paidValue,
                 changeAmount: keepChangeInWallet ? 0 : change,
                 paymentMethod,
-                saleItems: cart.map((l) => ({
-                    productId: l.productId,
-                    productName: l.productName,
-                    category: l.category,
-                    quantity: l.quantity,
-                    unitPrice: l.salePrice,
-                    subtotal: l.salePrice * l.quantity,
-                    ourPrice: l.ourPrice,
-                })),
+                // Allocate each cart line across batches (sell-first → FIFO), splitting
+                // into one sale line per batch so returns can trace batch + supplier.
+                saleItems: allocation.saleItems,
             };
 
             await salesApi.create(salePayload);
+
+            // Decrement the stock of every batch this sale drew from.
+            for (const { batch, used } of allocation.batchUpdates.values()) {
+                const newQty = Math.max(0, (Number(batch.quantity) || 0) - used);
+                await inventoryApi.updateBatch(String(batch.id || batch.mysqlId), { ...batch, quantity: newQty });
+            }
 
             // Net wallet movement: subtract the amount spent from the wallet, then add
             // any change the cashier chose to keep in the wallet.
@@ -353,7 +358,7 @@ export function POSPage() {
 
                     <div className="grid grid-cols-3 gap-3">
                         <PosButton icon={Tag} label="Discount" />
-                        <PosButton icon={RotateCcw} label="Refund" />
+                        <PosButton icon={RotateCcw} label="Refund" onClick={() => navigate('/refund')} />
                         <PosButton icon={BarChart3} label="Stats" />
                     </div>
 
@@ -657,6 +662,81 @@ function buildSellables(batches: ProductQuantityBatch[], products: Product[]): S
     return Array.from(byProduct.values());
 }
 
+// Group batches by product, each list ordered: manual sell-first (salePriority asc) then FIFO by expiry.
+function buildBatchMap(batches: ProductQuantityBatch[]): Map<string, ProductQuantityBatch[]> {
+    const map = new Map<string, ProductQuantityBatch[]>();
+    batches.forEach((b) => {
+        const key = String(b.productId || b.id || b.mysqlId || '');
+        if (!key) return;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push(b);
+    });
+    for (const list of map.values()) {
+        list.sort((a, b) => {
+            const pa = a.salePriority ?? Infinity;
+            const pb = b.salePriority ?? Infinity;
+            if (pa !== pb) return pa - pb;
+            const ea = a.expireDate ? new Date(a.expireDate).getTime() : Infinity;
+            const eb = b.expireDate ? new Date(b.expireDate).getTime() : Infinity;
+            return ea - eb;
+        });
+    }
+    return map;
+}
+
+let lineCounter = 0;
+function genLineId() {
+    lineCounter += 1;
+    return `SLI-${Date.now().toString(36)}-${lineCounter}`;
+}
+
+interface BatchUse { batch: ProductQuantityBatch; used: number; }
+
+// Split each cart line across its batches (in sell-first/FIFO order), producing one
+// sale line per batch with batch + supplier snapshot, plus the per-batch quantity used.
+function allocateSaleItems(cart: CartLine[], batchMap: Map<string, ProductQuantityBatch[]>) {
+    const saleItems: any[] = [];
+    const batchUpdates = new Map<string, BatchUse>();
+
+    const pushLine = (line: CartLine, qty: number, batch?: ProductQuantityBatch) => {
+        saleItems.push({
+            mysqlId: genLineId(),
+            productId: line.productId,
+            productName: line.productName,
+            category: line.category,
+            quantity: qty,
+            returnedQuantity: 0,
+            unitPrice: line.salePrice,
+            subtotal: line.salePrice * qty,
+            ourPrice: line.ourPrice,
+            batchId: batch ? String(batch.id || batch.mysqlId) : undefined,
+            batchCode: batch?.batchCode,
+            supplierId: batch?.supplierId,
+            supplierName: batch?.supplierName,
+        });
+    };
+
+    for (const line of cart) {
+        let remaining = line.quantity;
+        const batches = batchMap.get(line.productId) || [];
+        for (const batch of batches) {
+            if (remaining <= 0) break;
+            const key = String(batch.id || batch.mysqlId);
+            const alreadyUsed = batchUpdates.get(key)?.used || 0;
+            const free = (Number(batch.quantity) || 0) - alreadyUsed;
+            if (free <= 0) continue;
+            const take = Math.min(free, remaining);
+            pushLine(line, take, batch);
+            batchUpdates.set(key, { batch, used: alreadyUsed + take });
+            remaining -= take;
+        }
+        // No batch / not enough stock — still sell, but without batch traceability.
+        if (remaining > 0) pushLine(line, remaining);
+    }
+
+    return { saleItems, batchUpdates };
+}
+
 // A single shared customer record used for all anonymous walk-in (Quick Sale) checkouts.
 const WALK_IN_CONTACT = 'WALK-IN';
 const WALK_IN_EMAIL = 'walk-in@pos.local';
@@ -676,9 +756,9 @@ async function adjustWallet(customer: Customer, delta: number) {
     const wallets = await walletApi.list();
     const existing = wallets.find((w) => w.customerId === customerId || w.customerContact === customer.contact);
 
-    if (existing && (existing.mysqlId || existing.id)) {
+    if (existing && (existing.id || existing.mysqlId)) {
         const newBalance = Math.max(0, (Number(existing.balance) || 0) + delta);
-        await walletApi.update(String(existing.mysqlId || existing.id), {
+        await walletApi.update(String(existing.id || existing.mysqlId), {
             ...existing,
             balance: newBalance,
         });

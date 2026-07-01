@@ -18,9 +18,44 @@ export interface SaleItem {
   productName?: string;
   category?: string;
   quantity?: number;
+  returnedQuantity?: number;
   unitPrice?: number;
   subtotal?: number;
   ourPrice?: number;
+  batchId?: string;
+  batchCode?: string;
+  supplierId?: string;
+  supplierName?: string;
+}
+
+export interface ProductReturnItem {
+  mysqlId?: string;
+  productId?: string;
+  productName?: string;
+  returnedQuantity?: number;
+  unitPrice?: number;
+  returnAmount?: number;
+  saleItemId?: string;
+  condition?: string;
+  batchId?: string;
+  supplierId?: string;
+  supplierName?: string;
+  replacementGrnId?: string | null;
+}
+
+export interface ProductReturn {
+  id?: string;
+  mysqlId?: string;
+  returnCode?: string;
+  saleId?: string;
+  saleCode?: string;
+  customerId?: string;
+  customerContact?: string;
+  refundMethod?: string;
+  refundAmount?: number;
+  reason?: string;
+  createdAt?: string;
+  returnItems?: ProductReturnItem[];
 }
 
 export interface Sale {
@@ -98,6 +133,7 @@ export interface ProductQuantityBatch {
   variationId?: string;
   barcode?: string;
   batchCode?: string;
+  supplierId?: string;
   supplierName?: string;
   quantity?: number;
   salePrice?: number;

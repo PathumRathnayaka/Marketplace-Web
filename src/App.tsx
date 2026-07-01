@@ -3,6 +3,7 @@ import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { POSPage } from './pages/POSPage';
+import { RefundPage } from './pages/RefundPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { SalesPage } from './pages/SalesPage';
 import { GrnsPage } from './pages/GrnsPage';
@@ -50,6 +51,14 @@ function App() {
     return (
       <main className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
         <POSPage />
+      </main>
+    );
+  }
+
+  if (auth && route === '/refund') {
+    return (
+      <main className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
+        <RefundPage />
       </main>
     );
   }
