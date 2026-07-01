@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { POSPage } from './pages/POSPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { SalesPage } from './pages/SalesPage';
+import { ReturnsPage } from './pages/ReturnsPage';
 import { GrnsPage } from './pages/GrnsPage';
 import { CreateGrnPage } from './pages/CreateGrnPage';
 import { GrnDetailPage } from './pages/GrnDetailPage';
@@ -80,6 +81,8 @@ function renderProtectedPage(route: Route, auth: LoginData) {
   switch (route) {
     case '/products':
       return <ProductsPage />;
+    case '/returns':
+      return <ReturnsPage />;
     case '/sales':
       return <SalesPage />;
     case '/grns':

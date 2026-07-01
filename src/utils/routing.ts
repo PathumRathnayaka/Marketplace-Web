@@ -5,6 +5,7 @@ export type Route =
   | '/pos'
   | '/products'
   | '/sales'
+  | '/returns'
   | '/grns'
   | '/grns/create'
   | '/grns/detail'
@@ -44,6 +45,7 @@ export function readRoute(): Route {
     path === '/pos' ||
     path === '/products' ||
     path === '/sales' ||
+    path === '/returns' ||
     path === '/grns' ||
     path === '/grns/create' ||
     path === '/wallets' ||

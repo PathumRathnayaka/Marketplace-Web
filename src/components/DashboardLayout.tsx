@@ -4,6 +4,7 @@ import {
   CreditCard,
   LogOut,
   Package,
+  RotateCcw,
   ScanBarcode,
   ShoppingBag,
   Store,
@@ -30,6 +31,7 @@ const navItems = [
   { label: 'POS', route: '/pos' as const, icon: ScanBarcode },
   { label: 'Products', route: '/products' as const, icon: Package },
   { label: 'Sales', route: '/sales' as const, icon: ShoppingBag },
+  { label: 'Returns', route: '/returns' as const, icon: RotateCcw },
   {
     label: 'GRN',
     icon: Truck,
