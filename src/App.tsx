@@ -13,6 +13,7 @@ import { WalletsPage } from './pages/WalletsPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { CustomersPage } from './pages/CustomersPage';
 import { SuppliersPage } from './pages/SuppliersPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { DashboardLayout } from './components/DashboardLayout';
 import { clearStoredAuth, getStoredAuth } from './services/api';
 import { LoginData } from './types/auth';
@@ -99,6 +100,8 @@ function renderProtectedPage(route: Route, auth: LoginData) {
       return <CustomersPage />;
     case '/suppliers':
       return <SuppliersPage />;
+    case '/settings':
+      return <SettingsPage />;
     case '/dashboard':
     default:
       return <DashboardPage auth={auth} />;

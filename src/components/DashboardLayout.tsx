@@ -6,6 +6,7 @@ import {
   Package,
   RotateCcw,
   ScanBarcode,
+  Settings,
   ShoppingBag,
   Store,
   Truck,
@@ -44,6 +45,7 @@ const navItems = [
   { label: 'Inventory', route: '/inventory' as const, icon: Boxes },
   { label: 'Customers', route: '/customers' as const, icon: Users },
   { label: 'Suppliers', route: '/suppliers' as const, icon: UserRoundCheck },
+  { label: 'Settings', route: '/settings' as const, icon: Settings },
 ];
 
 export function DashboardLayout({

@@ -12,7 +12,8 @@ export type Route =
   | '/wallets'
   | '/inventory'
   | '/customers'
-  | '/suppliers';
+  | '/suppliers'
+  | '/settings';
 
 export function navigate(route: Route) {
   window.history.pushState({}, '', route);
@@ -51,7 +52,8 @@ export function readRoute(): Route {
     path === '/wallets' ||
     path === '/inventory' ||
     path === '/customers' ||
-    path === '/suppliers'
+    path === '/suppliers' ||
+    path === '/settings'
   ) {
     return path as Route;
   }

@@ -10,8 +10,8 @@ import { PosCustomerModal } from '../components/PosCustomerModal';
 import { NumberPadModal } from '../components/NumberPadModal';
 import { RefundView } from '../components/RefundView';
 import { InvoiceReceipt, ReceiptData } from '../components/InvoiceReceipt';
-import { customerApi, getStoredAuth, inventoryApi, productApi, salesApi, walletApi } from '../services/api';
-import { Customer, Product, ProductQuantityBatch } from '../types/pos';
+import { customerApi, getStoredAuth, inventoryApi, invoiceSettingsApi, productApi, salesApi, walletApi } from '../services/api';
+import { Customer, InvoiceSettings, Product, ProductQuantityBatch } from '../types/pos';
 import { formatMoney } from '../utils/format';
 import { navigate } from '../utils/routing';
 
@@ -71,6 +71,7 @@ export function POSPage() {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [lastReceipt, setLastReceipt] = useState<ReceiptData | null>(null);
+    const [activeInvoiceSettings, setActiveInvoiceSettings] = useState<InvoiceSettings | null>(null);
 
     // Fire the browser print dialog once the receipt content has actually committed to the DOM.
     useEffect(() => {
@@ -93,6 +94,10 @@ export function POSPage() {
                 setBatchesByProduct(buildBatchMap(batches));
             })
             .catch(console.error);
+
+        invoiceSettingsApi.list()
+            .then((rows) => setActiveInvoiceSettings(rows.find((r) => r.isActive) || null))
+            .catch(console.error);
     }, []);
 
     // Load the selected customer's wallet balance so it can be applied at checkout.
@@ -114,7 +119,7 @@ export function POSPage() {
     }, [customer]);
 
     const subtotal = useMemo(
-        () => cart.reduce((sum, line) => sum + line.salePrice * line.quantity, 0),
+        () => cart.reduce((sum, line) => sum + line.ourPrice * line.quantity, 0),
         [cart]
     );
     const discountValue = Number(discount) || 0;
@@ -290,20 +295,22 @@ export function POSPage() {
             setLastReceipt({
                 saleId,
                 date: saleDate,
-                cashierName: auth?.user.fullName,
                 customerContact: isWalkIn ? undefined : customer?.contact,
                 items: cart.map((l) => ({
                     productName: l.productName,
                     quantity: l.quantity,
                     unitPrice: l.salePrice,
-                    subtotal: l.salePrice * l.quantity,
+                    ourPrice: l.ourPrice,
+                    subtotal: l.ourPrice * l.quantity,
                 })),
                 subtotal,
+                tax: 0,
                 discount: discountValue,
                 total,
                 walletApplied,
                 cashPaid: paidValue,
                 change: keepChangeInWallet ? 0 : change,
+                invoiceSettings: activeInvoiceSettings,
                 paymentMethod,
             });
 
@@ -533,7 +540,7 @@ function CartView(p: CartViewProps) {
                                             <button onClick={() => p.changeQty(line.productId, 1)} className="rounded-md border border-slate-300 p-1 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"><Plus className="h-3.5 w-3.5" /></button>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 font-mono text-emerald-600">{formatMoney(line.salePrice * line.quantity)}</td>
+                                    <td className="px-4 py-3 font-mono text-emerald-600">{formatMoney(line.ourPrice * line.quantity)}</td>
                                     <td className="px-4 py-3 text-right">
                                         <button onClick={() => p.removeLine(line.productId)} className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"><Trash2 className="h-4 w-4" /></button>
                                     </td>
@@ -748,7 +755,7 @@ function allocateSaleItems(cart: CartLine[], batchMap: Map<string, ProductQuanti
             quantity: qty,
             returnedQuantity: 0,
             unitPrice: line.salePrice,
-            subtotal: line.salePrice * qty,
+            subtotal: line.ourPrice * qty,
             ourPrice: line.ourPrice,
             batchId: batch ? String(batch.id || batch.mysqlId) : undefined,
             batchCode: batch?.batchCode,

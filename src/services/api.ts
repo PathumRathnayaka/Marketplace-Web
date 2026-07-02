@@ -1,6 +1,6 @@
 import { ApiResponse, LoginData, RegisterOwnerPayload } from '../types/auth';
 import { env } from '../config/env';
-import { Customer, Grn, Product, ProductQuantityBatch, ProductReturn, Sale, Supplier, Wallet } from '../types/pos';
+import { Customer, Grn, InvoiceSettings, Product, ProductQuantityBatch, ProductReturn, Sale, Supplier, Wallet } from '../types/pos';
 
 const AUTH_STORAGE_KEY = 'qalpos.auth';
 
@@ -185,6 +185,20 @@ export const inventoryApi = {
     }),
   updateBatch: (id: string, data: Partial<ProductQuantityBatch>) =>
     request<ApiResponse<ProductQuantityBatch>>(`/api/pos/api/v1/product-quantity-batches/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+};
+
+export const invoiceSettingsApi = {
+  list: () => requestList<InvoiceSettings>('/api/pos/api/v1/invoice-settings'),
+  create: (data: Partial<InvoiceSettings>) =>
+    request<ApiResponse<InvoiceSettings>>('/api/pos/api/v1/invoice-settings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<InvoiceSettings>) =>
+    request<ApiResponse<InvoiceSettings>>(`/api/pos/api/v1/invoice-settings/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),

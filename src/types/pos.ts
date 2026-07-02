@@ -153,6 +153,20 @@ export interface Customer {
   createdDate?: string;
 }
 
+export interface InvoiceSettings {
+  id?: string;
+  mysqlId?: string;
+  language?: 'EN' | 'SI';
+  shopName?: string;
+  slogan?: string;
+  address?: string;
+  tel?: string;
+  email?: string;
+  footerMessage?: string;
+  isActive?: boolean;
+  createdAt?: string;
+}
+
 export interface Supplier {
   id?: string;
   mysqlId?: string;
