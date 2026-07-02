@@ -31,6 +31,37 @@ interface InvoiceReceiptProps {
 
 const DEFAULT_FOOTER = ['Thank you for your business!', 'Please come again!'];
 
+const LABELS = {
+    EN: {
+        date: 'Date:',
+        inv: 'Inv #:',
+        customer: 'Customer:',
+        headers: ['Item', 'Qty', 'MRP', 'Our', 'Total'],
+        subtotal: 'SUBTOTAL',
+        tax: 'TAX (LKR)',
+        discount: 'DISCOUNT',
+        total: 'TOTAL',
+        walletApplied: 'WALLET APPLIED',
+        paid: 'PAID',
+        change: 'CHANGE',
+        profit: 'The profit you earned from this bill = ',
+    },
+    SI: {
+        date: 'දිනය:',
+        inv: 'Inv #:',
+        customer: 'Customer:',
+        headers: ['Item', 'Qty', 'මිල', 'අපේ මිල', 'මුළු මුදල'],
+        subtotal: 'එකතුව',
+        tax: 'බදු (රු)',
+        discount: 'වට්ටම',
+        total: 'මුළු එකතුව',
+        walletApplied: 'පෙර ගනුදෙනුවෙන්',
+        paid: 'ගෙවූ මුදල්',
+        change: 'ඉතිරි මුදල්',
+        profit: 'මෙම බිලෙන් ඔබට ලැබුන ලාභය = ',
+    },
+} as const;
+
 // Rendered off-screen at all times; only becomes visible via the `print:` variant
 // when the browser's print dialog is triggered — sized for an 80mm thermal roll
 // (see the `@page` rule in index.css).
@@ -42,6 +73,8 @@ export function InvoiceReceipt({ data }: InvoiceReceiptProps) {
     const footerLines = settings?.footerMessage
         ? settings.footerMessage.split('\n').map((l) => l.trim()).filter(Boolean)
         : DEFAULT_FOOTER;
+    const labels = LABELS[settings?.language === 'SI' ? 'SI' : 'EN'];
+    const [hItem, hQty, hMrp, hOur, hTotal] = labels.headers;
 
     const profit = data.items.reduce((sum, item) => sum + (item.unitPrice - item.ourPrice) * item.quantity, 0);
 
@@ -56,19 +89,19 @@ export function InvoiceReceipt({ data }: InvoiceReceiptProps) {
             </div>
             <div className="my-1 border-t border-dashed border-black" />
 
-            <p>Date: {formatDateTime(data.date)}</p>
-            <p>Inv #: {data.saleId}</p>
-            {data.customerContact && <p>Customer: {data.customerContact}</p>}
+            <p>{labels.date} {formatDateTime(data.date)}</p>
+            <p>{labels.inv} {data.saleId}</p>
+            {data.customerContact && <p>{labels.customer} {data.customerContact}</p>}
             <div className="my-1 border-t border-dashed border-black" />
 
             <table className="w-full">
                 <thead>
                     <tr>
-                        <th className="text-left font-normal">Item</th>
-                        <th className="text-right font-normal">Qty</th>
-                        <th className="text-right font-normal">MRP</th>
-                        <th className="text-right font-normal">Our</th>
-                        <th className="text-right font-normal">Total</th>
+                        <th className="text-left font-normal">{hItem}</th>
+                        <th className="text-right font-normal">{hQty}</th>
+                        <th className="text-right font-normal">{hMrp}</th>
+                        <th className="text-right font-normal">{hOur}</th>
+                        <th className="text-right font-normal">{hTotal}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -85,22 +118,22 @@ export function InvoiceReceipt({ data }: InvoiceReceiptProps) {
             </table>
 
             <div className="my-1 border-t border-dashed border-black" />
-            <div className="flex justify-between"><span>SUBTOTAL</span><span>{formatMoney(data.subtotal)}</span></div>
-            <div className="flex justify-between"><span>TAX (LKR)</span><span>{formatMoney(data.tax)}</span></div>
+            <div className="flex justify-between"><span>{labels.subtotal}</span><span>{formatMoney(data.subtotal)}</span></div>
+            <div className="flex justify-between"><span>{labels.tax}</span><span>{formatMoney(data.tax)}</span></div>
             {data.discount > 0 && (
-                <div className="flex justify-between"><span>DISCOUNT</span><span>-{formatMoney(data.discount)}</span></div>
+                <div className="flex justify-between"><span>{labels.discount}</span><span>-{formatMoney(data.discount)}</span></div>
             )}
-            <div className="flex justify-between text-sm font-bold"><span>TOTAL</span><span>{formatMoney(data.total)}</span></div>
+            <div className="flex justify-between text-sm font-bold"><span>{labels.total}</span><span>{formatMoney(data.total)}</span></div>
 
             <div className="my-1 border-t border-dashed border-black" />
             {data.walletApplied > 0 && (
-                <div className="flex justify-between"><span>WALLET APPLIED</span><span>-{formatMoney(data.walletApplied)}</span></div>
+                <div className="flex justify-between"><span>{labels.walletApplied}</span><span>-{formatMoney(data.walletApplied)}</span></div>
             )}
-            <div className="flex justify-between"><span>PAID</span><span>{formatMoney(data.cashPaid)}</span></div>
-            <div className="flex justify-between"><span>CHANGE</span><span>{formatMoney(data.change)}</span></div>
+            <div className="flex justify-between"><span>{labels.paid}</span><span>{formatMoney(data.cashPaid)}</span></div>
+            <div className="flex justify-between"><span>{labels.change}</span><span>{formatMoney(data.change)}</span></div>
 
             <div className="my-1 border-t border-dashed border-black" />
-            <p className="text-center font-bold">The profit you earned from this bill = {profit.toFixed(2)}</p>
+            <p className="text-center font-bold">{labels.profit}{profit.toFixed(2)}</p>
 
             <div className="mt-2 text-center italic">
                 {footerLines.map((line, i) => (
