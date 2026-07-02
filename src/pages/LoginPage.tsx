@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react';
+import { motion } from 'framer-motion';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { AuthShell } from '../components/AuthShell';
 import { FormField } from '../components/FormField';
@@ -43,40 +44,59 @@ export function LoginPage({ theme, onToggleTheme, onLogin }: LoginPageProps) {
       theme={theme}
       onToggleTheme={onToggleTheme}
     >
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <motion.form
+        className="space-y-5"
+        onSubmit={handleSubmit}
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.08 } },
+        }}
+      >
         {error && <StatusMessage type="error" message={error} />}
 
-        <FormField
-          id="login-email"
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="owner@example.com"
-          autoComplete="email"
-          required
-        />
+        <motion.div
+          variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
+        >
+          <FormField
+            id="login-email"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="owner@example.com"
+            autoComplete="email"
+            required
+          />
+        </motion.div>
 
-        <FormField
-          id="login-password"
-          label="Password"
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          placeholder="Enter your password"
-          autoComplete="current-password"
-          required
-        />
+        <motion.div
+          variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
+        >
+          <FormField
+            id="login-password"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Enter your password"
+            autoComplete="current-password"
+            required
+          />
+        </motion.div>
 
-        <button
+        <motion.button
           type="submit"
           disabled={loading}
           className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-400 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+          variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
+          whileTap={{ scale: 0.97 }}
         >
           {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowRight className="h-5 w-5" />}
           Login
-        </button>
-      </form>
+        </motion.button>
+      </motion.form>
 
       <div className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
         New owner account?{' '}

@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, Loader2, MailCheck } from 'lucide-react';
 import { AuthShell } from '../components/AuthShell';
 import { FormField } from '../components/FormField';
@@ -106,21 +107,28 @@ export function SignupPage({ theme, onToggleTheme }: SignupPageProps) {
           const isComplete = activeIndex > index || step === 'done';
 
           return (
-            <div
+            <motion.div
               key={item.key}
               className={`rounded-lg border px-3 py-3 text-sm ${
                 isActive || isComplete
                   ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100'
                   : 'border-slate-200 bg-white text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400'
               }`}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: index * 0.08 }}
             >
               <div className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white text-xs font-bold text-emerald-700 dark:bg-slate-900 dark:text-emerald-300">
+                <motion.span
+                  className="flex h-6 w-6 items-center justify-center rounded-md bg-white text-xs font-bold text-emerald-700 dark:bg-slate-900 dark:text-emerald-300"
+                  animate={isComplete ? { scale: [1, 1.2, 1] } : {}}
+                  transition={{ duration: 0.3 }}
+                >
                   {isComplete ? <Check className="h-4 w-4" /> : index + 1}
-                </span>
+                </motion.span>
                 <span className="font-medium">{item.label}</span>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>
@@ -129,92 +137,123 @@ export function SignupPage({ theme, onToggleTheme }: SignupPageProps) {
         {message && <StatusMessage type="success" message={message} />}
         {error && <StatusMessage type="error" message={error} />}
 
-        {step === 'email' && (
-          <form className="space-y-5" onSubmit={submitEmail}>
-            <FormField
-              id="signup-email"
-              label="Owner email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="owner@example.com"
-              autoComplete="email"
-              required
-            />
-            <PrimaryButton loading={loading} label="Send OTP" />
-          </form>
-        )}
-
-        {step === 'otp' && (
-          <form className="space-y-5" onSubmit={submitOtp}>
-            <StatusMessage type="info" message={`Enter the OTP sent to ${email}.`} />
-            <FormField
-              id="signup-otp"
-              label="OTP code"
-              value={otp}
-              onChange={(event) => setOtp(event.target.value)}
-              placeholder="876237"
-              inputMode="numeric"
-              required
-            />
-            <PrimaryButton loading={loading} label="Verify OTP" icon="mail" />
-          </form>
-        )}
-
-        {step === 'details' && (
-          <form className="space-y-5" onSubmit={submitDetails}>
-            <div className="grid gap-5 sm:grid-cols-2">
+        <AnimatePresence mode="wait">
+          {step === 'email' && (
+            <motion.form
+              key="email"
+              className="space-y-5"
+              onSubmit={submitEmail}
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -24 }}
+              transition={{ duration: 0.3 }}
+            >
               <FormField
-                id="signup-name"
-                label="Full name"
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                placeholder="Pathum Rathnayaka"
-                autoComplete="name"
+                id="signup-email"
+                label="Owner email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="owner@example.com"
+                autoComplete="email"
+                required
+              />
+              <PrimaryButton loading={loading} label="Send OTP" />
+            </motion.form>
+          )}
+
+          {step === 'otp' && (
+            <motion.form
+              key="otp"
+              className="space-y-5"
+              onSubmit={submitOtp}
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -24 }}
+              transition={{ duration: 0.3 }}
+            >
+              <StatusMessage type="info" message={`Enter the OTP sent to ${email}.`} />
+              <FormField
+                id="signup-otp"
+                label="OTP code"
+                value={otp}
+                onChange={(event) => setOtp(event.target.value)}
+                placeholder="876237"
+                inputMode="numeric"
+                required
+              />
+              <PrimaryButton loading={loading} label="Verify OTP" icon="mail" />
+            </motion.form>
+          )}
+
+          {step === 'details' && (
+            <motion.form
+              key="details"
+              className="space-y-5"
+              onSubmit={submitDetails}
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -24 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="grid gap-5 sm:grid-cols-2">
+                <FormField
+                  id="signup-name"
+                  label="Full name"
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  placeholder="Pathum Rathnayaka"
+                  autoComplete="name"
+                  required
+                />
+                <FormField
+                  id="signup-phone"
+                  label="Phone"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  placeholder="+94771234567"
+                  autoComplete="tel"
+                  required
+                />
+              </div>
+              <FormField
+                id="signup-business"
+                label="Business name"
+                value={businessName}
+                onChange={(event) => setBusinessName(event.target.value)}
+                placeholder="Pathum Supermarket"
                 required
               />
               <FormField
-                id="signup-phone"
-                label="Phone"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                placeholder="+94771234567"
-                autoComplete="tel"
+                id="signup-password"
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Create a secure password"
+                autoComplete="new-password"
                 required
               />
-            </div>
-            <FormField
-              id="signup-business"
-              label="Business name"
-              value={businessName}
-              onChange={(event) => setBusinessName(event.target.value)}
-              placeholder="Pathum Supermarket"
-              required
-            />
-            <FormField
-              id="signup-password"
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Create a secure password"
-              autoComplete="new-password"
-              required
-            />
-            <PrimaryButton loading={loading} label="Create account" />
-          </form>
-        )}
+              <PrimaryButton loading={loading} label="Create account" />
+            </motion.form>
+          )}
 
-        {step === 'done' && (
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
-          >
-            Go to login
-            <ArrowRight className="h-5 w-5" />
-          </button>
-        )}
+          {step === 'done' && (
+            <motion.button
+              key="done"
+              type="button"
+              onClick={() => navigate('/login')}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.3 }}
+            >
+              Go to login
+              <ArrowRight className="h-5 w-5" />
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-600 dark:text-slate-300">
