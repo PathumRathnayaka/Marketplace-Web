@@ -30,6 +30,7 @@ export function CustomersPage() {
         error={error}
         emptyMessage="No customers found"
         getRowKey={(customer, index) => customer.id || customer.mysqlId || index.toString()}
+        sortDescendingBy={(customer) => customer.createdDate}
         columns={[
           { key: 'contact', header: 'Contact', render: (customer) => customer.contact || '-' },
           { key: 'email', header: 'Email', render: (customer) => customer.email || '-' },

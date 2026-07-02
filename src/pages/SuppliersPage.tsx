@@ -56,6 +56,7 @@ export function SuppliersPage() {
         error={error}
         emptyMessage="No suppliers found"
         getRowKey={(supplier, index) => supplier.id || supplier.mysqlId || index.toString()}
+        sortDescendingBy={(supplier) => supplier.createdDate}
         columns={[
           { key: 'name', header: 'Name', render: (supplier) => supplier.name || '-' },
           {

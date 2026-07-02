@@ -18,6 +18,8 @@ interface DataTableProps<T> {
   emptyMessage: string;
   getRowKey: (item: T, index: number) => string;
   onRowClick?: (item: T, index: number) => void;
+  /** When provided, rows are sorted so the most recently created item appears first. */
+  sortDescendingBy?: (item: T) => string | number | Date | undefined;
 }
 
 export function DataTable<T>({
@@ -30,7 +32,16 @@ export function DataTable<T>({
   emptyMessage,
   getRowKey,
   onRowClick,
+  sortDescendingBy,
 }: DataTableProps<T>) {
+  const rows = sortDescendingBy
+    ? [...data].sort((a, b) => {
+        const timeA = new Date(sortDescendingBy(a) ?? 0).getTime();
+        const timeB = new Date(sortDescendingBy(b) ?? 0).getTime();
+        return timeB - timeA;
+      })
+    : data;
+
   return (
     <section className="rounded-lg border border-emerald-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
       <div className="border-b border-emerald-100 px-5 py-4 dark:border-slate-800">
@@ -50,14 +61,14 @@ export function DataTable<T>({
 
         {!loading && error && <StatusMessage type="error" message={error} />}
 
-        {!loading && !error && data.length === 0 && (
+        {!loading && !error && rows.length === 0 && (
           <div className="flex h-44 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 text-center dark:border-slate-700">
             <AlertCircle className="mb-3 h-6 w-6 text-slate-400" />
             <p className="font-medium">{emptyMessage}</p>
           </div>
         )}
 
-        {!loading && !error && data.length > 0 && (
+        {!loading && !error && rows.length > 0 && (
           <div className="overflow-x-auto rounded-lg border border-emerald-100 dark:border-slate-800">
             <table className="min-w-full divide-y divide-emerald-100 text-sm dark:divide-slate-800">
               <thead className="bg-emerald-50/60 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950 dark:text-slate-400">
@@ -70,7 +81,7 @@ export function DataTable<T>({
                 </tr>
               </thead>
               <tbody className="divide-y divide-emerald-100 dark:divide-slate-800">
-                {data.map((item, index) => (
+                {rows.map((item, index) => (
                   <tr
                     key={getRowKey(item, index)}
                     className={`align-top ${

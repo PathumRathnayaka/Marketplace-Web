@@ -54,6 +54,7 @@ export function ProductsPage() {
         emptyMessage="No products found"
         getRowKey={(product, index) => product.id || product.mysqlId || index.toString()}
         onRowClick={(product) => setSelectedProduct(product)}
+        sortDescendingBy={(product) => product.createdDate}
         columns={[
           { key: 'name', header: 'Name', render: (product) => product.name || '-' },
           { key: 'category', header: 'Category', render: (product) => product.category || product.categoryName || '-' },

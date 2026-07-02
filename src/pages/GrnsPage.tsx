@@ -49,6 +49,7 @@ export function GrnsPage() {
           const id = grn.id || grn.mysqlId || grn.grnCode;
           if (id) navigateToGrn(id);
         }}
+        sortDescendingBy={(grn) => grn.createdAt}
         columns={[
           { key: 'code', header: 'GRN', render: (grn) => grn.grnCode || grn.mysqlId || '-' },
           { key: 'supplier', header: 'Supplier', render: (grn) => grn.supplierName || grn.supplierId || '-' },

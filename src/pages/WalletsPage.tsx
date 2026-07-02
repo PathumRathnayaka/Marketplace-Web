@@ -30,6 +30,7 @@ export function WalletsPage() {
         error={error}
         emptyMessage="No wallets found"
         getRowKey={(wallet, index) => wallet.id || wallet.mysqlId || index.toString()}
+        sortDescendingBy={(wallet) => wallet.createdDate}
         columns={[
           { key: 'code', header: 'Code', render: (wallet) => wallet.mysqlId || '-' },
           { key: 'customer', header: 'Customer', render: (wallet) => wallet.customerContact || wallet.customerId || '-' },

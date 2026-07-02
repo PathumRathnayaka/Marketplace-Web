@@ -37,6 +37,7 @@ export function InventoryPage() {
         error={error}
         emptyMessage="No inventory batches found"
         getRowKey={(batch, index) => batch.id || batch.batchCode || index.toString()}
+        sortDescendingBy={(batch) => batch.createdAt}
         columns={[
           { key: 'count', header: '#', render: (_batch, index) => index + 1 },
           { key: 'product', header: 'Product', render: (batch) => batch.productName || batch.productId || '-' },

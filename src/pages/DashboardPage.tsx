@@ -61,6 +61,9 @@ export function DashboardPage({ auth }: DashboardPageProps) {
   const dueTotal = data.grns.reduce((sum, grn) => sum + (grn.dueAmount || 0), 0);
   const walletBalance = data.wallets.reduce((sum, wallet) => sum + (wallet.balance || 0), 0);
   const lowStock = data.batches.filter((batch) => (batch.quantity || 0) <= 10).length;
+  const recentSales = [...data.sales]
+    .sort((a, b) => new Date(b.saleDate ?? 0).getTime() - new Date(a.saleDate ?? 0).getTime())
+    .slice(0, 8);
 
   return (
     <div className="px-5 py-6 sm:px-7">
@@ -106,7 +109,7 @@ export function DashboardPage({ auth }: DashboardPageProps) {
         <DataTable
           title="Recent sales"
           description="Latest sale records returned by the POS service."
-          data={data.sales.slice(0, 8)}
+          data={recentSales}
           loading={loading}
           error={error}
           emptyMessage="No sales found"

@@ -33,6 +33,7 @@ export function SalesPage() {
         error={error}
         emptyMessage="No sales found"
         getRowKey={(sale, index) => sale.id || sale.saleId || index.toString()}
+        sortDescendingBy={(sale) => sale.saleDate}
         columns={[
           { key: 'saleId', header: 'Invoice', render: (sale) => sale.saleId || sale.mysqlId || '-' },
           { key: 'customer', header: 'Customer', render: (sale) => sale.customerContact || sale.customerId || '-' },
