@@ -10,6 +10,7 @@ import {
 } from '../services/api';
 import { PageHeader } from '../components/PageHeader';
 import { MetricCard } from '../components/MetricCard';
+import { WeeklySalesChart } from '../components/WeeklySalesChart';
 import { DataTable } from '../components/DataTable';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAsyncData } from '../hooks/useAsyncData';
@@ -97,6 +98,10 @@ export function DashboardPage({ auth }: DashboardPageProps) {
         />
       </div>
 
+      <div className="mb-6">
+        <WeeklySalesChart sales={data.sales} />
+      </div>
+
       <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <DataTable
           title="Recent sales"
@@ -120,7 +125,6 @@ export function DashboardPage({ auth }: DashboardPageProps) {
           <div className="mt-4 space-y-4 text-sm">
             <Detail label="Email" value={auth.user.email} />
             <Detail label="Role" value={auth.user.role} />
-            <Detail label="Tenant ID" value={auth.user.tenantId} />
             <Detail label="Verified" value={auth.user.isVerified ? 'Yes' : 'No'} />
           </div>
 
