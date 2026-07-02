@@ -120,7 +120,7 @@ export function DashboardPage({ auth }: DashboardPageProps) {
           ]}
         />
 
-        <aside className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <aside className="rounded-lg border border-emerald-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
           <h3 className="text-lg font-semibold">Tenant session</h3>
           <div className="mt-4 space-y-4 text-sm">
             <Detail label="Email" value={auth.user.email} />
@@ -128,7 +128,7 @@ export function DashboardPage({ auth }: DashboardPageProps) {
             <Detail label="Verified" value={auth.user.isVerified ? 'Yes' : 'No'} />
           </div>
 
-          <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
+          <div className="mt-6 border-t border-emerald-100 pt-5 dark:border-slate-800">
             <h4 className="font-semibold">Stock attention</h4>
             <div className="mt-3 space-y-3 text-sm">
               {data.batches.slice(0, 4).map((batch, index) => (
@@ -142,7 +142,7 @@ export function DashboardPage({ auth }: DashboardPageProps) {
                       Exp {formatDate(batch.expireDate)}
                     </p>
                   </div>
-                  <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold dark:bg-slate-800">
+                  <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 dark:bg-slate-800 dark:text-slate-100">
                     {batch.quantity ?? 0}
                   </span>
                 </div>

@@ -53,7 +53,7 @@ export function WeeklySalesChart({ sales }: WeeklySalesChartProps) {
   )?.key;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-lg border border-emerald-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold">Weekly sales</h3>
@@ -75,7 +75,7 @@ export function WeeklySalesChart({ sales }: WeeklySalesChartProps) {
         <div className="relative flex h-40 flex-1 items-end">
           <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
             {ticks.map((_, index) => (
-              <div key={index} className="border-t border-slate-100 dark:border-slate-800" />
+              <div key={index} className="border-t border-emerald-50 dark:border-slate-800" />
             ))}
           </div>
 

@@ -32,8 +32,8 @@ export function DataTable<T>({
   onRowClick,
 }: DataTableProps<T>) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-      <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+    <section className="rounded-lg border border-emerald-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
+      <div className="border-b border-emerald-100 px-5 py-4 dark:border-slate-800">
         <h3 className="text-lg font-semibold">{title}</h3>
         {description && (
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
@@ -58,9 +58,9 @@ export function DataTable<T>({
         )}
 
         {!loading && !error && data.length > 0 && (
-          <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-            <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
-              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+          <div className="overflow-x-auto rounded-lg border border-emerald-100 dark:border-slate-800">
+            <table className="min-w-full divide-y divide-emerald-100 text-sm dark:divide-slate-800">
+              <thead className="bg-emerald-50/60 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950 dark:text-slate-400">
                 <tr>
                   {columns.map((column) => (
                     <th key={column.key} className="whitespace-nowrap px-4 py-3 font-semibold">
@@ -69,13 +69,13 @@ export function DataTable<T>({
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+              <tbody className="divide-y divide-emerald-100 dark:divide-slate-800">
                 {data.map((item, index) => (
                   <tr
                     key={getRowKey(item, index)}
                     className={`align-top ${
                       onRowClick
-                        ? 'cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                        ? 'cursor-pointer transition-colors hover:bg-emerald-50/50 dark:hover:bg-slate-800/50'
                         : ''
                     }`}
                     onClick={onRowClick ? () => onRowClick(item, index) : undefined}

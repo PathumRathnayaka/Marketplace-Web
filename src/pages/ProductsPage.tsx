@@ -55,7 +55,6 @@ export function ProductsPage() {
         getRowKey={(product, index) => product.id || product.mysqlId || index.toString()}
         onRowClick={(product) => setSelectedProduct(product)}
         columns={[
-          { key: 'mysqlId', header: 'Code', render: (product) => product.mysqlId || '-' },
           { key: 'name', header: 'Name', render: (product) => product.name || '-' },
           { key: 'category', header: 'Category', render: (product) => product.category || product.categoryName || '-' },
           { key: 'unit', header: 'Unit', render: (product) => product.unitType || '-' },

@@ -31,7 +31,6 @@ export function CustomersPage() {
         emptyMessage="No customers found"
         getRowKey={(customer, index) => customer.id || customer.mysqlId || index.toString()}
         columns={[
-          { key: 'code', header: 'Code', render: (customer) => customer.mysqlId || '-' },
           { key: 'contact', header: 'Contact', render: (customer) => customer.contact || '-' },
           { key: 'email', header: 'Email', render: (customer) => customer.email || '-' },
           { key: 'created', header: 'Created', render: (customer) => formatDateTime(customer.createdDate) },
