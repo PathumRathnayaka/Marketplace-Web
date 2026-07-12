@@ -234,6 +234,9 @@ const SUPPLIER_GW = '/api/supplier';
 export const marketplaceApi = {
   listProducts: () =>
     requestList<MarketProduct>(`${SUPPLIER_GW}/api/products/public`, { auth: false }),
+  // Public supplier directory, for browsing suppliers rather than products.
+  listSuppliers: () =>
+    requestList<SupplierContact>(`${SUPPLIER_GW}/api/suppliers/public`, { auth: false }),
   getSupplier: (id: string) =>
     requestOne<SupplierContact>(`${SUPPLIER_GW}/api/suppliers/${id}/public`, { auth: false }),
 };
