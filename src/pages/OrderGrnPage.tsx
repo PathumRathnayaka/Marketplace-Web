@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Store, ShoppingCart } from 'lucide-react';
+import { Trash2, Store, ShoppingCart, RefreshCw } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { CreateGrnPaymentModal } from '../components/CreateGrnPaymentModal';
 import { ordersApi, shopProfileApi } from '../services/api';
@@ -11,6 +11,7 @@ import {
     getOrderGrnCart,
     clearOrderGrnCart,
 } from '../utils/orderGrnCart';
+import { findCodeConflicts, loadShopCodes, nextCode } from '../utils/grnCodes';
 
 // The Order GRN is a GRN whose products come from an authorized (marketplace)
 // supplier. It saves to the same pos GRN table as a normal GRN, and additionally
@@ -28,6 +29,30 @@ export function OrderGrnPage() {
 
     const [items, setItems] = useState<Partial<GrnItem>[]>([]);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [generatingCodes, setGeneratingCodes] = useState(false);
+
+    // Suggest the next codes after this shop's last ones. They stay editable —
+    // the owner can type a supplier's real invoice number over the suggestion.
+    const generateCodes = async () => {
+        setGeneratingCodes(true);
+        try {
+            const codes = await loadShopCodes();
+            setHeaderData((prev) => ({
+                ...prev,
+                grnCode: nextCode('OGRN', codes.grnCodes),
+                invoiceNo: nextCode('INV', codes.invoiceNos),
+                batchCode: nextCode('BCH', codes.batchCodes),
+            }));
+        } catch (err) {
+            console.error('Failed to generate GRN codes', err);
+        } finally {
+            setGeneratingCodes(false);
+        }
+    };
+
+    useEffect(() => {
+        generateCodes();
+    }, []);
 
     // Seed the GRN line items from the draft Order GRN cart.
     useEffect(() => {
@@ -55,8 +80,10 @@ export function OrderGrnPage() {
         setHeaderData((prev) => ({ ...prev, [name]: value }));
     };
 
+    // Blank stays blank (undefined), not 0 — a sticky 0 can't be deleted and turns
+    // the next keystroke into "02".
     const handleQtyChange = (index: number, value: string) => {
-        const qty = value === '' ? 0 : Number(value);
+        const qty = value === '' ? undefined : Number(value);
         setItems((prev) => prev.map((it, i) => (i === index ? { ...it, quantity: qty } : it)));
     };
 
@@ -64,15 +91,26 @@ export function OrderGrnPage() {
         setItems((prev) => prev.filter((_, i) => i !== index));
     };
 
-    const handleSubmitCheckout = () => {
-        if (!headerData.invoiceNo) {
-            alert('Please provide an invoice number.');
+    const handleSubmitCheckout = async () => {
+        if (!headerData.grnCode || !headerData.invoiceNo || !headerData.batchCode) {
+            alert('Please provide a GRN code, invoice number and batch code.');
             return;
         }
         if (items.length === 0) {
             alert('Please add at least one product to the Order GRN.');
             return;
         }
+        if (items.some((it) => !it.quantity || it.quantity <= 0)) {
+            alert('Every product needs a quantity of at least 1.');
+            return;
+        }
+
+        const conflicts = await findCodeConflicts(headerData);
+        if (conflicts.length > 0) {
+            alert(`Already used by this shop: ${conflicts.join(', ')}. Change them or regenerate.`);
+            return;
+        }
+
         setIsPaymentModalOpen(true);
     };
 
@@ -158,8 +196,17 @@ export function OrderGrnPage() {
             />
 
             <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
                     <h3 className="font-semibold text-slate-800 dark:text-slate-100">1. GRN Details</h3>
+                    <button
+                        type="button"
+                        onClick={generateCodes}
+                        disabled={generatingCodes}
+                        className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-white disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                    >
+                        <RefreshCw className={`h-3.5 w-3.5 ${generatingCodes ? 'animate-spin' : ''}`} />
+                        Regenerate codes
+                    </button>
                 </div>
                 <div className="p-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="space-y-1.5 lg:col-span-2">
@@ -181,6 +228,7 @@ export function OrderGrnPage() {
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-700 dark:text-slate-200">GRN Code</label>
                         <input required name="grnCode" value={headerData.grnCode} onChange={handleHeaderChange} type="text" className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" placeholder="e.g. OGRN-2026" />
+                        <p className="text-xs text-slate-400">Auto-generated — edit if needed.</p>
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Invoice No</label>
