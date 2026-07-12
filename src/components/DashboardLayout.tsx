@@ -8,6 +8,7 @@ import {
   ScanBarcode,
   Settings,
   ShoppingBag,
+  ShoppingCart,
   Store,
   Truck,
   UserRoundCheck,
@@ -39,12 +40,16 @@ const navItems = [
     subItems: [
       { label: 'GRNs List', route: '/grns' as const },
       { label: 'Create GRN', route: '/grns/create' as const },
+      { label: 'Order GRN', route: '/grns/order' as const },
+      { label: 'Delivery Status', route: '/grns/delivery' as const },
     ]
   },
   { label: 'Wallets', route: '/wallets' as const, icon: CreditCard },
   { label: 'Inventory', route: '/inventory' as const, icon: Boxes },
   { label: 'Customers', route: '/customers' as const, icon: Users },
   { label: 'Suppliers', route: '/suppliers' as const, icon: UserRoundCheck },
+  { label: 'Buy from Suppliers', route: '/supplier-market' as const, icon: ShoppingCart },
+  { label: 'Shop Profile', route: '/shop-profile' as const, icon: Store },
   { label: 'Settings', route: '/settings' as const, icon: Settings },
 ];
 

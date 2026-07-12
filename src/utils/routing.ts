@@ -8,11 +8,15 @@ export type Route =
   | '/returns'
   | '/grns'
   | '/grns/create'
+  | '/grns/order'
+  | '/grns/delivery'
   | '/grns/detail'
   | '/wallets'
   | '/inventory'
   | '/customers'
   | '/suppliers'
+  | '/supplier-market'
+  | '/shop-profile'
   | '/settings';
 
 export function navigate(route: Route) {
@@ -25,9 +29,13 @@ export function navigateToGrn(id: string) {
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
+// Sub-pages of /grns that are pages in their own right, not a GRN id.
+const GRN_SUBPAGES = ['/grns/create', '/grns/order', '/grns/delivery'];
+
 export function getGrnDetailId(): string | null {
-  const match = window.location.pathname.match(/^\/grns\/([^/]+)$/);
-  if (match && match[1] !== 'create') {
+  const path = window.location.pathname;
+  const match = path.match(/^\/grns\/([^/]+)$/);
+  if (match && !GRN_SUBPAGES.includes(path)) {
     return decodeURIComponent(match[1]);
   }
   return null;
@@ -36,7 +44,7 @@ export function getGrnDetailId(): string | null {
 export function readRoute(): Route {
   const path = window.location.pathname;
 
-  if (/^\/grns\/[^/]+$/.test(path) && path !== '/grns/create') {
+  if (/^\/grns\/[^/]+$/.test(path) && !GRN_SUBPAGES.includes(path)) {
     return '/grns/detail';
   }
 
@@ -49,10 +57,14 @@ export function readRoute(): Route {
     path === '/returns' ||
     path === '/grns' ||
     path === '/grns/create' ||
+    path === '/grns/order' ||
+    path === '/grns/delivery' ||
     path === '/wallets' ||
     path === '/inventory' ||
     path === '/customers' ||
     path === '/suppliers' ||
+    path === '/supplier-market' ||
+    path === '/shop-profile' ||
     path === '/settings'
   ) {
     return path as Route;

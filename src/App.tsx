@@ -8,11 +8,15 @@ import { SalesPage } from './pages/SalesPage';
 import { ReturnsPage } from './pages/ReturnsPage';
 import { GrnsPage } from './pages/GrnsPage';
 import { CreateGrnPage } from './pages/CreateGrnPage';
+import { OrderGrnPage } from './pages/OrderGrnPage';
+import { DeliveryStatusPage } from './pages/DeliveryStatusPage';
 import { GrnDetailPage } from './pages/GrnDetailPage';
 import { WalletsPage } from './pages/WalletsPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { CustomersPage } from './pages/CustomersPage';
 import { SuppliersPage } from './pages/SuppliersPage';
+import { SupplierMarketplacePage } from './pages/SupplierMarketplacePage';
+import { ShopProfilePage } from './pages/ShopProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { DashboardLayout } from './components/DashboardLayout';
 import { clearStoredAuth, getStoredAuth } from './services/api';
@@ -90,6 +94,10 @@ function renderProtectedPage(route: Route, auth: LoginData) {
       return <GrnsPage />;
     case '/grns/create':
       return <CreateGrnPage />;
+    case '/grns/order':
+      return <OrderGrnPage />;
+    case '/grns/delivery':
+      return <DeliveryStatusPage />;
     case '/grns/detail':
       return <GrnDetailPage />;
     case '/wallets':
@@ -100,6 +108,10 @@ function renderProtectedPage(route: Route, auth: LoginData) {
       return <CustomersPage />;
     case '/suppliers':
       return <SuppliersPage />;
+    case '/supplier-market':
+      return <SupplierMarketplacePage />;
+    case '/shop-profile':
+      return <ShopProfilePage />;
     case '/settings':
       return <SettingsPage />;
     case '/dashboard':

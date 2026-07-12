@@ -263,6 +263,7 @@ export function CreateGrnModal({ isOpen, onClose, onSuccess }: CreateGrnModalPro
                                         <option value="PARTIAL">PARTIAL</option>
                                         <option value="PAID">PAID</option>
                                         <option value="UNPAID">UNPAID</option>
+                                        <option value="COD">CASH ON DELIVERY</option>
                                     </select>
                                 </div>
                             </div>

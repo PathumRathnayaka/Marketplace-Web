@@ -68,7 +68,9 @@ export function CreateGrnPaymentModal({
             if (value === 'PAID') {
                 return { ...prev, paymentStatus: value, paidAmount: total, dueAmount: 0, paymentAmount: total };
             }
-            if (value === 'UNPAID') {
+            // Nothing is paid up front on Cash on Delivery: the full amount is due
+            // until the supplier hands the stock over.
+            if (value === 'UNPAID' || value === 'COD') {
                 return { ...prev, paymentStatus: value, paidAmount: 0, dueAmount: total, paymentAmount: 0 };
             }
             return { ...prev, paymentStatus: value };
@@ -248,6 +250,7 @@ export function CreateGrnPaymentModal({
                                         <option value="PARTIAL">PARTIAL</option>
                                         <option value="PAID">PAID</option>
                                         <option value="UNPAID">UNPAID</option>
+                                        <option value="COD">CASH ON DELIVERY</option>
                                     </select>
                                 </div>
                             </div>

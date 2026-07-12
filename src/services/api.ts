@@ -1,6 +1,8 @@
 import { ApiResponse, LoginData, RegisterOwnerPayload } from '../types/auth';
 import { env } from '../config/env';
 import { Customer, Grn, InvoiceSettings, Product, ProductQuantityBatch, ProductReturn, Sale, Supplier, Wallet } from '../types/pos';
+import { MarketProduct, SupplierContact } from '../types/marketplace';
+import { ShopOrder, ShopOrderInput, ShopProfile } from '../types/orders';
 
 const AUTH_STORAGE_KEY = 'qalpos.auth';
 
@@ -224,13 +226,48 @@ export const supplierApi = {
     }),
 };
 
-async function requestList<T>(path: string) {
-  const response = await request<ApiResponse<T[]> | T[]>(path);
+// B2B marketplace: the supplier-service exposes these cross-tenant, public
+// (no auth / no tenant scoping) so any POS shop can browse suppliers' products
+// and look up the supplier's contact details to buy directly.
+const SUPPLIER_GW = '/api/supplier';
+
+export const marketplaceApi = {
+  listProducts: () =>
+    requestList<MarketProduct>(`${SUPPLIER_GW}/api/products/public`, { auth: false }),
+  getSupplier: (id: string) =>
+    requestOne<SupplierContact>(`${SUPPLIER_GW}/api/suppliers/${id}/public`, { auth: false }),
+};
+
+// Authenticated B2B order link (shop JWT). The shop posts an Order GRN so the
+// authorized supplier can see which shop ordered and how to reach it.
+export const ordersApi = {
+  create: (data: ShopOrderInput) =>
+    request<ApiResponse<ShopOrder[]>>(`${SUPPLIER_GW}/api/orders`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  // Order GRNs this shop has placed, with the supplier's delivery status on each.
+  myShopOrders: () => requestList<ShopOrder>(`${SUPPLIER_GW}/api/orders/my-shop-orders`),
+};
+
+// The shop's own contact profile stored in supplier-service so suppliers can
+// reach it. Keyed server-side by the shop's JWT tenant id.
+export const shopProfileApi = {
+  getMine: () => requestOne<ShopProfile | null>(`${SUPPLIER_GW}/api/shop-profile/me`),
+  upsert: (data: ShopProfile) =>
+    request<ApiResponse<ShopProfile>>(`${SUPPLIER_GW}/api/shop-profile/me`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+};
+
+async function requestList<T>(path: string, options: RequestOptions = {}) {
+  const response = await request<ApiResponse<T[]> | T[]>(path, options);
   return Array.isArray(response) ? response : response.data || [];
 }
 
-async function requestOne<T>(path: string) {
-  const response = await request<ApiResponse<T> | T>(path);
+async function requestOne<T>(path: string, options: RequestOptions = {}) {
+  const response = await request<ApiResponse<T> | T>(path, options);
   return isApiResponse<T>(response) ? response.data : response;
 }
 
