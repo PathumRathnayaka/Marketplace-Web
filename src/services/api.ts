@@ -156,6 +156,11 @@ export const grnApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  update: (id: string, data: Partial<Grn>) =>
+    request<ApiResponse<Grn>>(`/api/pos/api/v1/grns/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
   createPayment: (data: any) =>
     request<ApiResponse<any>>('/api/pos/api/v1/grn-payments', {
       method: 'POST',
@@ -189,6 +194,10 @@ export const inventoryApi = {
     request<ApiResponse<ProductQuantityBatch>>(`/api/pos/api/v1/product-quantity-batches/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
+    }),
+  deleteBatch: (id: string) =>
+    request<void>(`/api/pos/api/v1/product-quantity-batches/${id}`, {
+      method: 'DELETE',
     }),
 };
 

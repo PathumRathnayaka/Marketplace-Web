@@ -4,6 +4,7 @@ import { PageHeader } from '../components/PageHeader';
 import { ordersApi } from '../services/api';
 import { DeliveryStatus, ShopOrder } from '../types/orders';
 import { navigate } from '../utils/routing';
+import { reconcileDeliveredOrderGrns } from '../utils/orderGrnFulfillment';
 
 // Only Order GRNs appear here: shop_orders in supplier-service is written solely
 // by the Order GRN checkout, so every row is an imported-supplier order. Normal
@@ -70,12 +71,22 @@ export function DeliveryStatusPage() {
     const [orders, setOrders] = useState<ShopOrder[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
 
     const load = async () => {
         setLoading(true);
         setError(null);
         try {
-            setOrders(await ordersApi.myShopOrders());
+            const fetched = await ordersApi.myShopOrders();
+            setOrders(fetched);
+
+            const created = await reconcileDeliveredOrderGrns(fetched).catch((err) => {
+                console.error('Failed to add delivered stock to inventory', err);
+                return 0;
+            });
+            if (created > 0) {
+                setNotice(`${created} delivered order${created > 1 ? 's' : ''} added to inventory.`);
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Unable to load your orders.');
         } finally {
@@ -110,6 +121,12 @@ export function DeliveryStatusPage() {
             {error && (
                 <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-300">
                     {error}
+                </div>
+            )}
+
+            {notice && (
+                <div className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                    {notice}
                 </div>
             )}
 

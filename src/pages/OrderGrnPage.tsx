@@ -309,6 +309,7 @@ export function OrderGrnPage() {
                 items={items}
                 baseCalculatedTotal={calculatedTotalAmount}
                 suppliers={posSupplier ? [posSupplier] : []}
+                deferInventory
                 onClose={() => setIsPaymentModalOpen(false)}
                 onSuccess={handleOrderGrnCreated}
             />

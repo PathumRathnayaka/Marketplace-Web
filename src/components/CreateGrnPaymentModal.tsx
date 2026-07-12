@@ -15,12 +15,17 @@ interface CreateGrnPaymentModalProps {
     items: Partial<GrnItem>[];
     baseCalculatedTotal: number;
     suppliers: Supplier[];
+    // Order GRNs (marketplace suppliers, not yet delivered) must not appear in
+    // inventory until the supplier marks the delivery as Delivered. When set,
+    // the GRN is saved as PENDING and no ProductQuantityBatch rows are created
+    // here — DeliveryStatusPage creates them once the order is confirmed delivered.
+    deferInventory?: boolean;
     onClose: () => void;
     onSuccess: (grnId: string) => void;
 }
 
 export function CreateGrnPaymentModal({
-    isOpen, headerData, items, baseCalculatedTotal, suppliers, onClose, onSuccess
+    isOpen, headerData, items, baseCalculatedTotal, suppliers, deferInventory, onClose, onSuccess
 }: CreateGrnPaymentModalProps) {
     const [formData, setFormData] = useState({
         totalAmount: '' as number | string,
@@ -47,9 +52,10 @@ export function CreateGrnPaymentModal({
                 paidAmount: '',
                 dueAmount: baseCalculatedTotal,
                 paymentAmount: '',
+                status: deferInventory ? 'PENDING' : prev.status,
             }));
         }
-    }, [isOpen, baseCalculatedTotal]);
+    }, [isOpen, baseCalculatedTotal, deferInventory]);
 
     if (!isOpen) return null;
 
@@ -125,26 +131,30 @@ export function CreateGrnPaymentModal({
                     currentItem.variationId = variationData.mysqlId || variationData.id;
                 }
 
-                // C. Explicitly bind Inventory Batches exactly bridging native Modal actions automatically!
-                await inventoryApi.createBatch({
-                    productId: currentItem.productId,
-                    productName: currentItem.productName,
-                    variationId: currentItem.variationId,
-                    variationSize: null,
-                    supplierId: headerData.supplierId,
-                    supplierName: supplierName,
-                    barcode: currentItem.barcode,
-                    quantity: Number(currentItem.quantity) || 0,
-                    batchCode: headerData.batchCode,
-                    salePrice: Number(currentItem.salePrice) || 0,
-                    purchasePrice: Number(currentItem.purchasePrice) || 0,
-                    ourPrice: Number(currentItem.ourPrice) || 0,
-                    brand: currentItem.brand,
-                    warehouseNo: currentItem.warehouseNo,
-                    discount: Number(currentItem.discount) || 0,
-                    tax: Number(currentItem.tax) || 0,
-                    expireDate: currentItem.expireDate,
-                });
+                // C. Bind Inventory Batches immediately — unless this GRN is for stock
+                // that hasn't arrived yet (Order GRN), in which case the batch is created
+                // later, once the supplier confirms delivery.
+                if (!deferInventory) {
+                    await inventoryApi.createBatch({
+                        productId: currentItem.productId,
+                        productName: currentItem.productName,
+                        variationId: currentItem.variationId,
+                        variationSize: null,
+                        supplierId: headerData.supplierId,
+                        supplierName: supplierName,
+                        barcode: currentItem.barcode,
+                        quantity: Number(currentItem.quantity) || 0,
+                        batchCode: headerData.batchCode,
+                        salePrice: Number(currentItem.salePrice) || 0,
+                        purchasePrice: Number(currentItem.purchasePrice) || 0,
+                        ourPrice: Number(currentItem.ourPrice) || 0,
+                        brand: currentItem.brand,
+                        warehouseNo: currentItem.warehouseNo,
+                        discount: Number(currentItem.discount) || 0,
+                        tax: Number(currentItem.tax) || 0,
+                        expireDate: currentItem.expireDate,
+                    });
+                }
 
                 // Attach batch payload securely
                 currentItem.batchCode = headerData.batchCode;
@@ -239,10 +249,15 @@ export function CreateGrnPaymentModal({
                                 </div>
                                 <div className="space-y-1.5 shrink">
                                     <label className="text-sm font-medium text-slate-700 dark:text-slate-200">GRN Status</label>
-                                    <select required name="status" value={formData.status} onChange={handleChange} className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                    <select required name="status" value={formData.status} onChange={handleChange} disabled={deferInventory} className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-800/50">
                                         <option value="RECEIVED">RECEIVED</option>
                                         <option value="PENDING">PENDING</option>
                                     </select>
+                                    {deferInventory && (
+                                        <p className="text-xs text-slate-400">
+                                            Stays PENDING until the supplier marks delivery as Delivered.
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5 shrink">
                                     <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Payment Status</label>
