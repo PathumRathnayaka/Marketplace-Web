@@ -38,6 +38,19 @@ function App() {
     return () => window.removeEventListener('popstate', handleRouteChange);
   }, []);
 
+  // A 401 clears localStorage (see services/api.ts) but that alone won't
+  // re-render this component's stale `auth` state, so listen for the event
+  // it dispatches and drop the session here too.
+  useEffect(() => {
+    function onUnauthorized() {
+      clearStoredAuth();
+      setAuth(null);
+      navigate('/login');
+    }
+    window.addEventListener('qalpos:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('qalpos:unauthorized', onUnauthorized);
+  }, []);
+
   useEffect(() => {
     if (!auth && route !== '/login' && route !== '/signup') {
       navigate('/login');

@@ -57,6 +57,11 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const text = await response.text();
   const payload = text ? JSON.parse(text) : null;
 
+  if (response.status === 401) {
+    clearStoredAuth();
+    window.dispatchEvent(new Event('qalpos:unauthorized'));
+  }
+
   if (!response.ok) {
     const message = payload?.message || `Request failed with status ${response.status}`;
     throw new Error(message);
